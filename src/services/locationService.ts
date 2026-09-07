@@ -44,16 +44,27 @@ export const locationService = {
     }
   },
 
+  /**
+   * Best-effort place name for a coordinate.
+   *
+   * Reverse geocoding needs native support and is unavailable on web (and can
+   * fail on device), so the fallback is the coordinate itself rather than a
+   * meaningless "Unknown area" — the user still learns where they are.
+   */
   async reverseGeocode(latitude: number, longitude: number): Promise<string> {
+    const coordinateLabel = `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
+
     try {
       const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (!place) return 'Unknown area';
+      if (!place) return coordinateLabel;
 
-      return [place.district ?? place.subregion, place.city ?? place.region]
+      const label = [place.district ?? place.subregion, place.city ?? place.region]
         .filter(Boolean)
-        .join(', ') || 'Unknown area';
+        .join(', ');
+
+      return label || coordinateLabel;
     } catch {
-      return 'Unknown area';
+      return coordinateLabel;
     }
   },
 };

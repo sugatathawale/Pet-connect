@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ScoreRing } from '@/components/ui/ScoreRing';
-import { colors, radius, shadow, spacing } from '@/constants/theme';
+import { colors, overlay, radius, shadow, spacing } from '@/constants/theme';
 import type { InterestDecision, PetWithContext } from '@/types';
 import { formatAge } from '@/utils/date';
 import { formatDistance } from '@/utils/geo';
@@ -216,7 +216,7 @@ function CardFace({ item }: { item: PetWithContext }) {
       </View>
 
       <LinearGradient
-        colors={['transparent', 'rgba(26,21,35,0.35)', 'rgba(26,21,35,0.92)']}
+        colors={['transparent', overlay.scrimSoft, overlay.scrimStrong]}
         style={styles.scrim}
       >
         <Text style={styles.name}>

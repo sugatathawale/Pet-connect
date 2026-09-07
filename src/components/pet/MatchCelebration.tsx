@@ -3,7 +3,7 @@ import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
-import { colors, radius, spacing } from '@/constants/theme';
+import { colors, overlay, radius, spacing } from '@/constants/theme';
 import type { Pet } from '@/types';
 import { primaryPhoto } from '@/utils/images';
 
@@ -62,7 +62,7 @@ export function MatchCelebration({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(26,21,35,0.6)',
+    backgroundColor: overlay.backdrop,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,

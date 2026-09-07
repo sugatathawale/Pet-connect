@@ -62,7 +62,7 @@ src/
     chat/                   MessageBubble
     listing/                ListingCard
   constants/
-    theme.ts                Design tokens — every colour/space/radius
+    theme.ts                Design tokens — colours, overlays, space, radius
     config.ts               Score weights, filter defaults, storage keys
   context/AppContext.tsx    App-wide state, wiring the services together
   hooks/                    useNearbyPets (filter + distance + score), useImagePicker
@@ -74,6 +74,7 @@ src/
     listingService.ts       Adopt/sell listings
     notificationService.ts  In-app feed + local device notifications
     locationService.ts      Device location with graceful fallback
+    demoService.ts          Demo-only: places seed data around the user
   types/index.ts            Domain model — the contract for everything above
   utils/                    geo (haversine), date (age), compatibility, privacy
   data/seed.ts              Demo pets/owners/listings
@@ -99,6 +100,16 @@ stay put because they configure navigators rather than render screens.
 | Notifications | [notificationService](src/services/notificationService.ts) |
 | Pet Connect Score | [compatibility.ts](src/utils/compatibility.ts) |
 
+## Theme
+
+Teal primary (`#0E9594`) with an amber accent. Teal is deliberately distinct from
+the green used for health/success badges, so "Open to breeding" never competes
+with "✅ Vaccinated" or the score pill — a problem the earlier coral palette had.
+
+Every colour lives in [src/constants/theme.ts](src/constants/theme.ts); no
+component hardcodes one, including translucent overlays. Changing the palette is
+a single-file edit.
+
 ## Two design decisions worth knowing
 
 **Privacy on reproductive data.** Availability windows default to `private`, and
@@ -111,6 +122,25 @@ owner picks from *Only me* / *Owners I match with* / *Nearby owners*.
 sub-score, weight, and a human reason, not just a number — so the pet detail
 screen can show *why* a pair scored 92%. Weights live in
 [src/constants/config.ts](src/constants/config.ts).
+
+## Demo mode & location
+
+Demo pets are **placed around wherever you actually are**, so distances read
+believably from any city. Each seed record carries an `offsetKm` (east/north from
+the user) and `demoService` converts those into real coordinates once the device
+reports a location — verified from Mumbai, Bengaluru, and New York, all showing
+the same 1.6–7.3 km spread.
+
+Relocation is applied on every read rather than written back to storage, so the
+original offsets survive and demo pets follow you if your location changes. Pets
+*you* create have no `offsetKm` and are never moved — their location is real.
+
+To remove demo mode: delete `src/services/demoService.ts`, drop the `offsetKm`
+field from `src/types/index.ts`, and remove its calls in `src/context/AppContext.tsx`.
+
+Location is never a gate — if permission is denied the app falls back to a default
+city and still works. When reverse geocoding is unavailable (always on web), the
+label falls back to the coordinate pair rather than a placeholder string.
 
 ## Data layer
 

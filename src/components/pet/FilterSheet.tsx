@@ -5,7 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 're
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { DEFAULT_FILTERS, DISTANCE_OPTIONS } from '@/constants/config';
-import { colors, radius, spacing } from '@/constants/theme';
+import { colors, overlay, radius, spacing } from '@/constants/theme';
 import type { PetFilters, PetSpecies } from '@/types';
 
 interface FilterSheetProps {
@@ -169,7 +169,7 @@ export function FilterSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(26,21,35,0.45)' },
+  backdrop: { flex: 1, backgroundColor: overlay.backdrop },
   dismissArea: { flex: 1 },
   sheet: {
     maxHeight: '85%',

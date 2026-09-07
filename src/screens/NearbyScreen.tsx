@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,10 +10,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FilterSheet } from '@/components/pet/FilterSheet';
+import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
 import { PetCard } from '@/components/pet/PetCard';
+import { TopMatchCard } from '@/components/pet/TopMatchCard';
+import { StatCard } from '@/components/ui/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DEFAULT_FILTERS } from '@/constants/config';
 import { colors, radius, spacing } from '@/constants/theme';
@@ -33,6 +37,7 @@ export default function NearbyScreen() {
     refresh,
     unreadNotifications,
     myPets,
+    matches,
   } = useApp();
   const { all, availableBreeds, totalNearby } = useNearbyPets();
 
@@ -46,6 +51,14 @@ export default function NearbyScreen() {
   };
 
   const activeFilterCount = countActiveFilters(filters);
+
+  // Dashboard values. `all` is already sorted by score, so the head is the best match.
+  const topMatch = all[0] ?? null;
+  const bestScore = topMatch?.compatibility.score ?? 0;
+  const availableNow = useMemo(
+    () => all.filter((item) => item.pet.availableForBreeding),
+    [all],
+  );
 
   if (!ready) {
     return (
@@ -107,8 +120,14 @@ export default function NearbyScreen() {
       <FlatList
         data={all}
         keyExtractor={(item) => item.pet.id}
-        renderItem={({ item }) => (
-          <PetCard item={item} onPress={() => router.push(`/pet/${item.pet.id}`)} />
+        renderItem={({ item, index }) => (
+          <Animated.View
+            entering={FadeInDown.delay(Math.min(index, 6) * 60)
+              .springify()
+              .damping(16)}
+          >
+            <PetCard item={item} onPress={() => router.push(`/pet/${item.pet.id}`)} />
+          </Animated.View>
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -120,22 +139,77 @@ export default function NearbyScreen() {
           />
         }
         ListHeaderComponent={
-          myPets.length === 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push('/pet/new')}
-              style={styles.banner}
-            >
-              <Text style={styles.bannerEmoji}>🐾</Text>
-              <View style={styles.bannerText}>
-                <Text style={styles.bannerTitle}>Add your pet</Text>
-                <Text style={styles.bannerBody}>
-                  Create a profile to start matching and get accurate scores.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={19} color={colors.primary} />
-            </Pressable>
-          ) : null
+          <View>
+            {myPets.length === 0 && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/pet/new')}
+                style={styles.banner}
+              >
+                <Text style={styles.bannerEmoji}>🐾</Text>
+                <View style={styles.bannerText}>
+                  <Text style={styles.bannerTitle}>Add your pet</Text>
+                  <Text style={styles.bannerBody}>
+                    Create a profile to start matching and get accurate scores.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={colors.primary} />
+              </Pressable>
+            )}
+
+            <View style={styles.statsRow}>
+              <StatCard
+                index={0}
+                icon="paw"
+                label="Nearby"
+                value={totalNearby}
+                tint={colors.primary}
+                tintSoft={colors.primarySoft}
+              />
+              <StatCard
+                index={1}
+                icon="heart"
+                label="Matches"
+                value={matches.length}
+                tint={colors.female}
+                tintSoft={colors.femaleSoft}
+                onPress={() => router.push('/chats')}
+              />
+              <StatCard
+                index={2}
+                icon="flash"
+                label="Available"
+                value={availableNow.length}
+                tint={colors.success}
+                tintSoft={colors.successSoft}
+              />
+              <StatCard
+                index={3}
+                icon="trending-up"
+                label="Best"
+                value={bestScore}
+                suffix="%"
+                tint={colors.accent}
+                tintSoft={colors.accentSoft}
+              />
+            </View>
+
+            {topMatch && (
+              <TopMatchCard
+                item={topMatch}
+                onPress={() => router.push(`/pet/${topMatch.pet.id}`)}
+              />
+            )}
+
+            <AvailableNowRail
+              items={availableNow}
+              onSelect={(petId) => router.push(`/pet/${petId}`)}
+            />
+
+            {all.length > 0 && (
+              <Text style={styles.sectionTitle}>All pets nearby</Text>
+            )}
+          </View>
         }
         ListEmptyComponent={
           <EmptyState
@@ -256,6 +330,17 @@ const styles = StyleSheet.create({
   filterCountText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   resultCount: { fontSize: 12, color: colors.inkFaint, fontWeight: '500' },
   list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.ink,
+    marginBottom: spacing.md,
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

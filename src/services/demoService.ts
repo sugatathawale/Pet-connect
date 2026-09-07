@@ -27,17 +27,23 @@ function areaLabel(base: string, index: number): string {
     'Downtown',
     'Riverside',
   ];
-  return `${AREAS[index % AREAS.length]}, ${base}`;
+  const area = AREAS[index % AREAS.length];
+  return base ? `${area}, ${base}` : area;
 }
 
 function relocate<T extends { id: string; offsetKm?: { east: number; north: number }; location: PetLocation }>(
   records: T[],
   userLocation: PetLocation,
 ): T[] {
-  // Strip the city off a "District, City" label so we can rebuild it.
-  const cityName = userLocation.label.includes(',')
-    ? userLocation.label.split(',').pop()!.trim()
-    : userLocation.label;
+  // Strip the city off a "District, City" label so we can rebuild it. When the
+  // label is a raw coordinate pair (geocoding unavailable), drop it entirely so
+  // areas read as "North side" rather than "North side, 19.076".
+  const looksLikeCoordinates = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(userLocation.label);
+  const cityName = looksLikeCoordinates
+    ? ''
+    : userLocation.label.includes(',')
+      ? userLocation.label.split(',').pop()!.trim()
+      : userLocation.label;
 
   return records.map((record, index) => {
     if (!record.offsetKm) return record;
