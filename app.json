@@ -1,13 +1,19 @@
 {
   "expo": {
-    "name": "Pet-connect",
-    "slug": "Pet-connect",
+    "name": "Pet Connect",
+    "slug": "pet-connect",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.petconnect.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Pet Connect uses your location to show nearby pets and matches.",
+        "NSPhotoLibraryUsageDescription": "Pet Connect needs photo access so you can add pictures of your pets.",
+        "NSCameraUsageDescription": "Pet Connect needs camera access so you can take pictures of your pets."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,10 +22,38 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.petconnect.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pet Connect uses your location to show nearby pets and matches."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pet Connect needs photo access so you can add pictures of your pets.",
+          "cameraPermission": "Pet Connect needs camera access so you can take pictures of your pets."
+        }
+      ]
+    ],
+    "scheme": "petconnect",
+    "newArchEnabled": true,
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
