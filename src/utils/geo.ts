@@ -39,3 +39,23 @@ export function approximateLocation(point: Coordinates, radiusKm = 1): Coordinat
     longitude: Number((point.longitude + lonOffset).toFixed(4)),
   };
 }
+
+/**
+ * Offsets a coordinate by a distance in kilometres.
+ *
+ * Longitude degrees shrink with latitude, so the east component is divided by
+ * cos(lat) — without that, demo pets drift badly far from the equator.
+ */
+export function offsetByKm(
+  origin: Coordinates,
+  eastKm: number,
+  northKm: number,
+): Coordinates {
+  const KM_PER_DEGREE = 111.32;
+  const latitude = origin.latitude + northKm / KM_PER_DEGREE;
+  const cosLat = Math.cos(toRadians(origin.latitude));
+  const longitude =
+    origin.longitude + eastKm / (KM_PER_DEGREE * (Math.abs(cosLat) < 0.01 ? 0.01 : cosLat));
+
+  return { latitude, longitude };
+}

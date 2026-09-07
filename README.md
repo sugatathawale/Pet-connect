@@ -21,27 +21,41 @@ Routing lives in `app/` (file-based, via expo-router); everything else lives in
 `src/` behind the `@/*` path alias.
 
 ```
-app/                        Routes — the file tree *is* the navigation tree
-  _layout.tsx               Root stack + providers (gesture handler, safe area, app state)
+app/                        Routes only — thin re-exports, no screen logic
+  _layout.tsx               Root stack + providers (gesture handler, safe area, state)
   (tabs)/
     _layout.tsx             Bottom tab bar
-    index.tsx               Nearby pets (home)
-    discover.tsx            Swipe-to-match deck
-    listings.tsx            Adopt & sell marketplace
-    chats.tsx               Conversation list
-    profile.tsx             Owner profile + availability toggles
+    index.tsx               → NearbyScreen
+    discover.tsx            → DiscoverScreen
+    listings.tsx            → ListingsScreen
+    chats.tsx               → ChatsScreen
+    profile.tsx             → ProfileScreen
   pet/
-    [id].tsx                Pet detail, score breakdown, interest actions
-    new.tsx                 Create a pet profile
-    availability.tsx        Breeding availability + visibility controls
-  chat/[id].tsx             One-to-one chat
+    [id].tsx                → PetDetailScreen
+    new.tsx                 → NewPetScreen
+    availability.tsx        → AvailabilityScreen
+  chat/[id].tsx             → ChatScreen
   listing/
-    [id].tsx                Listing detail
-    new.tsx                 Create a listing
-  owner/[id].tsx            Public owner profile
-  notifications.tsx         Notification feed
+    [id].tsx                → ListingDetailScreen
+    new.tsx                 → NewListingScreen
+  owner/[id].tsx            → OwnerScreen
+  notifications.tsx         → NotificationsScreen
 
 src/
+  screens/                  Every screen lives here
+    NearbyScreen.tsx        Nearby pets (home)
+    DiscoverScreen.tsx      Swipe-to-match deck
+    ListingsScreen.tsx      Adopt & sell marketplace
+    ChatsScreen.tsx         Conversation list
+    ProfileScreen.tsx       Owner profile + availability toggles
+    PetDetailScreen.tsx     Pet detail, score breakdown, interest actions
+    NewPetScreen.tsx        Create a pet profile
+    AvailabilityScreen.tsx  Breeding availability + visibility controls
+    ChatScreen.tsx          One-to-one chat
+    ListingDetailScreen.tsx Listing detail
+    NewListingScreen.tsx    Create a listing
+    OwnerScreen.tsx         Public owner profile
+    NotificationsScreen.tsx Notification feed
   components/
     ui/                     Generic primitives (Button, Badge, Chip, Field, Avatar…)
     pet/                    PetCard, SwipeDeck, FilterSheet, AvailabilityCard…
@@ -65,17 +79,23 @@ src/
   data/seed.ts              Demo pets/owners/listings
 ```
 
+**Why `app/` still exists:** expo-router derives routes from the file tree, so
+`app/pet/[id].tsx` *is* the URL `/pet/:id`. Those files are one-line re-exports
+(`export { default } from '@/screens/PetDetailScreen'`) — routing stays declarative
+in `app/`, and all screen code lives in `src/screens/`. The two `_layout.tsx` files
+stay put because they configure navigators rather than render screens.
+
 ## How the features map to code
 
 | Feature | Where |
 |---|---|
-| Create pet profile | [app/pet/new.tsx](app/pet/new.tsx) |
-| Nearby pets + filters | [app/(tabs)/index.tsx](app/(tabs)/index.tsx), [useNearbyPets](src/hooks/useNearbyPets.ts) |
+| Create pet profile | [NewPetScreen](src/screens/NewPetScreen.tsx) |
+| Nearby pets + filters | [NearbyScreen](src/screens/NearbyScreen.tsx), [useNearbyPets](src/hooks/useNearbyPets.ts) |
 | Matching (interested / skip) | [SwipeDeck](src/components/pet/SwipeDeck.tsx), [matchService](src/services/matchService.ts) |
-| Availability / heat status | [app/pet/availability.tsx](app/pet/availability.tsx), [privacy.ts](src/utils/privacy.ts) |
-| Chat | [app/chat/[id].tsx](app/chat/[id].tsx) |
-| Listings (adopt / sell) | [app/(tabs)/listings.tsx](app/(tabs)/listings.tsx) |
-| Owner profile | [app/(tabs)/profile.tsx](app/(tabs)/profile.tsx), [app/owner/[id].tsx](app/owner/[id].tsx) |
+| Availability / heat status | [AvailabilityScreen](src/screens/AvailabilityScreen.tsx), [privacy.ts](src/utils/privacy.ts) |
+| Chat | [ChatScreen](src/screens/ChatScreen.tsx) |
+| Listings (adopt / sell) | [ListingsScreen](src/screens/ListingsScreen.tsx) |
+| Owner profile | [ProfileScreen](src/screens/ProfileScreen.tsx), [OwnerScreen](src/screens/OwnerScreen.tsx) |
 | Notifications | [notificationService](src/services/notificationService.ts) |
 | Pet Connect Score | [compatibility.ts](src/utils/compatibility.ts) |
 

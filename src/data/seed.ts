@@ -3,7 +3,11 @@ import type { Listing, Owner, Pet } from '@/types';
 /**
  * Demo content so the app is populated on first launch.
  *
- * Coordinates are scattered around New Delhi to produce believable distances.
+ * The coordinates below are only a fallback for when location permission is
+ * denied. Normally `relocateSeedAroundUser` (see below) moves every demo pet to
+ * sit a fixed distance from wherever the user actually is, so distances read
+ * believably no matter which city you test from.
+ *
  * Replace this module with a real API once a backend exists.
  */
 
@@ -72,6 +76,7 @@ export const seedOwners: Owner[] = [
 export const seedPets: Pet[] = [
   {
     id: 'pet-luna',
+    offsetKm: { east: 0, north: 0 },
     ownerId: CURRENT_OWNER_ID,
     name: 'Luna',
     photos: [photo('photo-1552053831-71594a27632d'), photo('photo-1587300003388-59208cc962cb')],
@@ -95,6 +100,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-bruno',
+    offsetKm: { east: 1.4, north: -0.8 },
     ownerId: 'owner-neha',
     name: 'Bruno',
     photos: [photo('photo-1633722715463-d30f4f325e24'), photo('photo-1518717758536-85ae29035b6d')],
@@ -117,6 +123,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-simba',
+    offsetKm: { east: -2.1, north: 1.6 },
     ownerId: 'owner-arjun',
     name: 'Simba',
     photos: [photo('photo-1561037404-61cd46aa615b')],
@@ -139,6 +146,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-misty',
+    offsetKm: { east: 3.2, north: 2.4 },
     ownerId: 'owner-fatima',
     name: 'Misty',
     photos: [photo('photo-1514888286974-6c03e2ca1dba'), photo('photo-1595433707802-6b2626ef1c91')],
@@ -161,6 +169,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-coco',
+    offsetKm: { east: -1.1, north: -3.4 },
     ownerId: 'owner-rohan',
     name: 'Coco',
     photos: [photo('photo-1505628346881-b72b27e84530')],
@@ -183,6 +192,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-oreo',
+    offsetKm: { east: 4.8, north: -2.2 },
     ownerId: 'owner-priya',
     name: 'Oreo',
     photos: [photo('photo-1596854407944-bf87f6fdd49e')],
@@ -205,6 +215,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-rocky',
+    offsetKm: { east: -5.4, north: 3.1 },
     ownerId: 'owner-arjun',
     name: 'Rocky',
     photos: [photo('photo-1583337130417-3346a1be7dee')],
@@ -227,6 +238,7 @@ export const seedPets: Pet[] = [
   },
   {
     id: 'pet-bella',
+    offsetKm: { east: 2.6, north: 6.8 },
     ownerId: 'owner-neha',
     name: 'Bella',
     photos: [photo('photo-1568572933382-74d440642117')],
@@ -252,6 +264,7 @@ export const seedPets: Pet[] = [
 export const seedListings: Listing[] = [
   {
     id: 'listing-1',
+    offsetKm: { east: 2.9, north: 1.2 },
     ownerId: 'owner-fatima',
     kind: 'adopt',
     title: 'Three rescue kittens looking for homes',
@@ -269,6 +282,7 @@ export const seedListings: Listing[] = [
   },
   {
     id: 'listing-2',
+    offsetKm: { east: -1.6, north: -2.8 },
     ownerId: 'owner-rohan',
     kind: 'sell',
     title: 'KCI registered Beagle puppies',
@@ -286,6 +300,7 @@ export const seedListings: Listing[] = [
   },
   {
     id: 'listing-3',
+    offsetKm: { east: 3.7, north: -4.1 },
     ownerId: 'owner-priya',
     kind: 'adopt',
     title: 'Gentle 4-year-old indie needs a quiet home',

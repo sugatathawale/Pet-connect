@@ -38,8 +38,20 @@ export interface AvailabilityWindow {
   notes?: string;
 }
 
+/**
+ * Position relative to the user, in kilometres. Demo-only: it lets seed data be
+ * placed around whatever location the device reports. Real pets have absolute
+ * coordinates and no offset.
+ */
+export interface DemoOffsetKm {
+  east: number;
+  north: number;
+}
+
 export interface Pet {
   id: string;
+  /** Demo-only. Absent on user-created pets. */
+  offsetKm?: DemoOffsetKm;
   ownerId: string;
   name: string;
   photos: string[];
@@ -105,6 +117,8 @@ export type ListingKind = 'adopt' | 'sell';
 
 export interface Listing {
   id: string;
+  /** Demo-only. Absent on user-created listings. */
+  offsetKm?: DemoOffsetKm;
   ownerId: string;
   kind: ListingKind;
   title: string;

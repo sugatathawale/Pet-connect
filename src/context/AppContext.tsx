@@ -10,6 +10,7 @@ import React, {
 import { DEFAULT_FILTERS, NEARBY_ALERT_RADIUS_KM } from '@/constants/config';
 import { CURRENT_OWNER_ID } from '@/data/seed';
 import { chatService } from '@/services/chatService';
+import { demoService } from '@/services/demoService';
 import { listingService } from '@/services/listingService';
 import { locationService } from '@/services/locationService';
 import { matchService } from '@/services/matchService';
@@ -100,9 +101,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
 
     setOwners(nextOwners);
-    setPets(nextPets);
+    setPets(demoService.relocatePets(nextPets, userLocation));
     setMatches(nextMatches);
-    setListings(nextListings);
+    setListings(demoService.relocateListings(nextListings, userLocation));
     setNotifications(nextNotifs);
     setBlockedOwnerIds(nextBlocked);
 
@@ -111,13 +112,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (current && nextPets.some((p) => p.id === current)) return current;
       return nextPets.find((p) => p.ownerId === CURRENT_OWNER_ID)?.id ?? null;
     });
+  }, [userLocation]);
+
+  /**
+   * Reads pets from storage and applies demo relocation.
+   *
+   * Relocation is applied on every read rather than written back, so storage
+   * keeps the original offsets and demo pets follow the user if the location
+   * changes. Remove the demoService call when a backend supplies real data.
+   */
+  const reloadPets = useCallback(async (location: PetLocation) => {
+    const stored = await petService.listPets();
+    setPets(demoService.relocatePets(stored, location));
+  }, []);
+
+  const reloadListings = useCallback(async (location: PetLocation) => {
+    const stored = await listingService.listListings();
+    setListings(demoService.relocateListings(stored, location));
   }, []);
 
   const refreshLocation = useCallback(async () => {
     const { location, isPrecise } = await locationService.getCurrentLocation();
     setUserLocation(location);
     setIsLocationPrecise(isPrecise);
-  }, []);
+
+    // Demo-only: move seed pets/listings around the user's real position so
+    // distances are believable wherever the app is being tested.
+    await Promise.all([reloadPets(location), reloadListings(location)]);
+  }, [reloadPets, reloadListings]);
 
   // Bootstrap: data first so the UI can paint, then the slower device calls.
   useEffect(() => {
@@ -207,7 +229,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addPet = useCallback(
     async (input: Omit<Pet, 'id' | 'createdAt'>) => {
       const pet = await petService.createPet(input);
-      setPets(await petService.listPets());
+      await reloadPets(userLocation);
       setActivePetId((current) => current ?? pet.id);
 
       if (pet.availability.enabled && pet.availability.startDate) {
@@ -218,12 +240,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return pet;
     },
-    [],
+    [reloadPets, userLocation],
   );
 
   const updatePet = useCallback(async (id: string, patch: Partial<Pet>) => {
     const updated = await petService.updatePet(id, patch);
-    setPets(await petService.listPets());
+    await reloadPets(userLocation);
 
     if (updated?.availability.enabled && updated.availability.startDate) {
       await notificationService.scheduleAvailabilityReminder(
@@ -231,29 +253,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updated.availability.startDate,
       );
     }
-  }, []);
+  }, [reloadPets, userLocation]);
 
   const removePet = useCallback(async (id: string) => {
     await petService.deletePet(id);
-    const nextPets = await petService.listPets();
+    const nextPets = demoService.relocatePets(await petService.listPets(), userLocation);
     setPets(nextPets);
     setActivePetId((current) =>
       current === id
         ? nextPets.find((p) => p.ownerId === CURRENT_OWNER_ID)?.id ?? null
         : current,
     );
-  }, []);
+  }, [userLocation]);
 
   const addListing = useCallback(async (input: Omit<Listing, 'id' | 'createdAt'>) => {
     const listing = await listingService.createListing(input);
-    setListings(await listingService.listListings());
+    await reloadListings(userLocation);
     return listing;
-  }, []);
+  }, [reloadListings, userLocation]);
 
   const removeListing = useCallback(async (id: string) => {
     await listingService.deleteListing(id);
-    setListings(await listingService.listListings());
-  }, []);
+    await reloadListings(userLocation);
+  }, [reloadListings, userLocation]);
 
   const markNotificationsRead = useCallback(async () => {
     await notificationService.markAllRead();
