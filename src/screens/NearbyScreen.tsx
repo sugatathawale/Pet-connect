@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FilterSheet } from '@/components/pet/FilterSheet';
 import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
+import { CategoryRail } from '@/components/pet/CategoryRail';
 import { PetCard } from '@/components/pet/PetCard';
 import { TopMatchCard } from '@/components/pet/TopMatchCard';
 import { StatCard } from '@/components/ui/StatCard';
@@ -156,6 +157,11 @@ export default function NearbyScreen() {
                 <Ionicons name="chevron-forward" size={19} color={colors.primary} />
               </Pressable>
             )}
+
+            <CategoryRail
+              filters={filters}
+              onSelect={(patch) => setFilters({ ...filters, ...patch })}
+            />
 
             <View style={styles.statsRow}>
               <StatCard
@@ -329,7 +335,7 @@ const styles = StyleSheet.create({
   },
   filterCountText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   resultCount: { fontSize: 12, color: colors.inkFaint, fontWeight: '500' },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
   statsRow: {
     flexDirection: 'row',
     gap: spacing.sm,

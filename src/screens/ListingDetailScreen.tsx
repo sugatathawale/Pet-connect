@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
-import { notificationService } from '@/services/notificationService';
 import { formatAge, formatRelativeTime } from '@/utils/date';
 import { distanceBetween, formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
@@ -39,13 +38,7 @@ export default function ListingDetailScreen() {
   const isMine = listing.ownerId === currentOwnerId;
   const gallery = listing.photos.length > 0 ? listing.photos : [primaryPhoto([])];
 
-  const handleRespond = async () => {
-    await notificationService.push(
-      'listing_response',
-      'Response sent',
-      `${owner.name} has been notified about "${listing.title}".`,
-      `/listing/${listing.id}`,
-    );
+  const handleRespond = () => {
     Alert.alert(
       'Enquiry sent',
       `${owner.name} will get in touch about ${listing.kind === 'adopt' ? 'the adoption' : 'the sale'}.`,

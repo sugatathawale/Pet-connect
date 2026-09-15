@@ -9,8 +9,6 @@ import type { PetWithContext } from '@/types';
 import { formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 /**
  * Horizontal rail of pets currently open to matches.
  *
@@ -40,34 +38,39 @@ export function AvailableNowRail({
         contentContainerStyle={styles.rail}
       >
         {items.map((item, index) => (
-          <AnimatedPressable
+          <Animated.View
             key={item.pet.id}
-            accessibilityRole="button"
-            accessibilityLabel={`${item.pet.name}, ${formatDistance(item.distanceKm)}`}
-            onPress={() => onSelect(item.pet.id)}
             entering={FadeInRight.delay(index * 70).springify().damping(14)}
-            style={({ pressed }: { pressed: boolean }) => [styles.chip, pressed && styles.pressed]}
           >
-            <Image
-              source={{ uri: primaryPhoto(item.pet.photos) }}
-              style={styles.avatar}
-              contentFit="cover"
-              transition={160}
-            />
-            <View style={styles.liveDot} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${item.pet.name}, ${formatDistance(item.distanceKm)}`}
+              onPress={() => onSelect(item.pet.id)}
+              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            >
+              <View style={styles.avatarWrap}>
+                <Image
+                  source={{ uri: primaryPhoto(item.pet.photos) }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                  transition={160}
+                />
+                <View style={styles.liveDot} />
+              </View>
 
-            <Text style={styles.name} numberOfLines={1}>
-              {item.pet.name}
-            </Text>
-            <Text style={styles.distance} numberOfLines={1}>
-              {item.distanceKm.toFixed(1)} km
-            </Text>
+              <Text style={styles.name} numberOfLines={1}>
+                {item.pet.name}
+              </Text>
+              <Text style={styles.distance} numberOfLines={1}>
+                {item.distanceKm.toFixed(1)} km
+              </Text>
 
-            <View style={styles.scoreTag}>
-              <Ionicons name="flash" size={8} color={colors.primaryDark} />
-              <Text style={styles.scoreText}>{item.compatibility.score}%</Text>
-            </View>
-          </AnimatedPressable>
+              <View style={styles.scoreTag}>
+                <Ionicons name="flash" size={8} color={colors.primaryDark} />
+                <Text style={styles.scoreText}>{item.compatibility.score}%</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
         ))}
       </ScrollView>
     </View>
@@ -99,11 +102,14 @@ const styles = StyleSheet.create({
     width: 92,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.sm + 2,
     alignItems: 'center',
     ...shadow.card,
   },
   pressed: { opacity: 0.88, transform: [{ scale: 0.96 }] },
+  avatarWrap: { width: 56, height: 56 },
   avatar: {
     width: 56,
     height: 56,
@@ -112,13 +118,13 @@ const styles = StyleSheet.create({
   },
   liveDot: {
     position: 'absolute',
-    top: spacing.sm + 2,
-    right: spacing.md + 4,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: colors.success,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: colors.surface,
   },
   name: { fontSize: 12, fontWeight: '700', color: colors.ink, marginTop: 6 },

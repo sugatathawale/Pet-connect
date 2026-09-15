@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,9 @@ import { Chip } from '@/components/ui/Chip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
+import { listingService } from '@/services/listingService';
+import { prefetchCache } from '@/services/prefetchCache';
+import { prefetchListingPhotos } from '@/utils/imagePreloader';
 import type { ListingKind } from '@/types';
 
 type Tab = 'all' | ListingKind;
@@ -25,6 +28,19 @@ export default function ListingsScreen() {
   const insets = useSafeAreaInsets();
   const { listings } = useApp();
   const [tab, setTab] = useState<Tab>('all');
+
+  // ── Prefetching ──────────────────────────────────────────────────────────
+  // Warm listings in the background; prefetch cover photos for the first 8 cards.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await prefetchCache.warm('listings', listingService.listListings, 5 * 60 * 1000);
+      if (!cancelled && data.length > 0) {
+        prefetchListingPhotos(data, 8);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const visible = useMemo(
     () => (tab === 'all' ? listings : listings.filter((l) => l.kind === tab)),
@@ -109,5 +125,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
   },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
 });

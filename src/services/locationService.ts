@@ -58,8 +58,15 @@ export const locationService = {
       const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (!place) return coordinateLabel;
 
-      const label = [place.district ?? place.subregion, place.city ?? place.region]
-        .filter(Boolean)
+      // Try progressively broader fields: a specific area is nicer, but any
+      // recognisable place name beats showing raw coordinates.
+      const area = place.district ?? place.subregion ?? place.name ?? place.street;
+      const city = place.city ?? place.region ?? place.country;
+
+      const label = [area, city]
+        .filter((part): part is string => Boolean(part))
+        // Avoid "Delhi, Delhi" when the area and city resolve to the same name.
+        .filter((part, index, parts) => parts.indexOf(part) === index)
         .join(', ');
 
       return label || coordinateLabel;

@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { formatRelativeTime } from '@/utils/date';
+import { prefetchPetPhotos } from '@/utils/imagePreloader';
 import { primaryPhoto } from '@/utils/images';
 
 /** Conversation list — one row per match. */
@@ -15,6 +16,16 @@ export default function ChatsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { matches, myPets, petById, ownerById } = useApp();
+
+  // ── Prefetching ──────────────────────────────────────────────────────────
+  // Warm pet photos for all visible chat rows so avatar images appear instantly.
+  useEffect(() => {
+    const petIds = matches.flatMap((m) => m.petIds);
+    const photos = petIds
+      .map((id) => petById(id)?.photos?.[0])
+      .filter(Boolean) as string[];
+    if (photos.length > 0) prefetchPetPhotos(photos.map((url) => ({ photos: [url] })), 10);
+  }, [matches, petById]);
 
   const rows = useMemo(() => {
     const myPetIds = new Set(myPets.map((p) => p.id));
@@ -99,7 +110,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
   title: { fontSize: 25, fontWeight: '800', color: colors.ink },
   subtitle: { fontSize: 13, color: colors.inkMuted, marginTop: 2 },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
   row: {
     flexDirection: 'row',
     gap: spacing.md,

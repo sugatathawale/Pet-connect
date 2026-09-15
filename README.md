@@ -100,6 +100,30 @@ stay put because they configure navigators rather than render screens.
 | Notifications | [notificationService](src/services/notificationService.ts) |
 | Pet Connect Score | [compatibility.ts](src/utils/compatibility.ts) |
 
+## Home dashboard
+
+The home screen opens on a dashboard rather than a bare list:
+
+- **Stat row** — Nearby / Matches / Available / Best score, each counting up on
+  mount ([StatCard](src/components/ui/StatCard.tsx),
+  [AnimatedCounter](src/components/ui/AnimatedCounter.tsx))
+- **Top match card** — spotlight on the highest-scoring pet, with a slow sheen
+  sweep and a pulsing score pill ([TopMatchCard](src/components/pet/TopMatchCard.tsx))
+- **Available now rail** — horizontal carousel of pets open to matches, with live
+  dots ([AvailableNowRail](src/components/pet/AvailableNowRail.tsx))
+- **Staggered feed** — pet cards fade/spring in, each 60ms after the last
+
+All animations use Reanimated 4 on the UI thread. The counters tween a shared
+value and only pass the rounded integer back to JS, so a row of them stays cheap.
+
+Note the rail surfaces only the public `availableForBreeding` flag — never the
+private availability *dates*, which stay behind `canViewAvailability`.
+
+**RN-web gotcha worth knowing:** `Animated.createAnimatedComponent(Pressable)`
+silently drops function-form `style={({ pressed }) => …}` on web — cards rendered
+at the wrong width with no background. The fix is an `Animated.View` wrapper
+carrying `entering`, with a plain `Pressable` inside carrying the styles.
+
 ## Theme
 
 Teal primary (`#0E9594`) with an amber accent. Teal is deliberately distinct from

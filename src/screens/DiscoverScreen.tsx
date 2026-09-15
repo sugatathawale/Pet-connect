@@ -1,14 +1,16 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MatchCelebration } from '@/components/pet/MatchCelebration';
 import { SwipeDeck } from '@/components/pet/SwipeDeck';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { colors, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useNearbyPets } from '@/hooks/useNearbyPets';
+import { usePrefetch } from '@/hooks/usePrefetch';
+import { prefetchCache } from '@/services/prefetchCache';
+import { petService } from '@/services/petService';
 import type { InterestDecision, Match, Pet } from '@/types';
 
 /** Swipe-to-match screen. */
@@ -19,6 +21,26 @@ export default function DiscoverScreen() {
   const { undecided } = useNearbyPets();
 
   const [celebration, setCelebration] = useState<{ match: Match; pet: Pet } | null>(null);
+
+  // ── Prefetching ──────────────────────────────────────────────────────────
+  // Warm pet detail data for the top 3 cards so navigating to pet/[id] is instant.
+  const topPetIds = useMemo(() => undecided.slice(0, 3).map((u) => u.pet.id), [undecided]);
+
+  usePrefetch({
+    entries: topPetIds.map((id) => ({
+      key: `pet:${id}`,
+      fetcher: () => petService.getPet(id),
+      ttlMs: 2 * 60 * 1000,
+    })),
+    // PetWithContext stores the Pet at .pet; extract photos from there.
+    petPhotos: undecided.slice(0, 6).map((item) => ({ photos: item.pet.photos })),
+    revalidate: false,
+  });
+
+  // Also prefetch all nearby pets for the feed.
+  useEffect(() => {
+    void prefetchCache.warm('pets', petService.listPets, 2 * 60 * 1000);
+  }, []);
 
   const handleDecide = useCallback(
     async (petId: string, decision: InterestDecision) => {
@@ -67,19 +89,32 @@ export default function DiscoverScreen() {
         )}
       </View>
 
-      <MatchCelebration
-        visible={celebration !== null}
-        myPet={activePet}
-        theirPet={celebration?.pet ?? null}
-        onChat={() => {
-          const matchId = celebration?.match.id;
-          setCelebration(null);
-          if (matchId) router.push(`/chat/${matchId}`);
-        }}
-        onKeepBrowsing={() => setCelebration(null)}
-      />
+      {/* MatchCelebration is lazily imported — it's only shown on a match event. */}
+      {celebration !== null && (
+        <LazyMatchCelebration
+          visible={true}
+          myPet={activePet}
+          theirPet={celebration.pet}
+          onChat={() => {
+            const matchId = celebration?.match.id;
+            setCelebration(null);
+            if (matchId) router.push(`/chat/${matchId}`);
+          }}
+          onKeepBrowsing={() => setCelebration(null)}
+        />
+      )}
     </View>
   );
+}
+
+/** Lazy-load wrapper — shows nothing while the Modal loads (~3 KB). */
+function LazyMatchCelebration(props: React.ComponentProps<typeof import('@/components/pet/MatchCelebration').MatchCelebration>) {
+  const [Comp, setComp] = useState<React.ComponentType<typeof props> | null>(null);
+  React.useEffect(() => {
+    import('@/components/pet/MatchCelebration').then((m) => setComp(() => m.MatchCelebration));
+  }, []);
+  if (!Comp) return null;
+  return <Comp {...props} />;
 }
 
 function Header({ petName }: { petName?: string }) {
@@ -105,6 +140,7 @@ const styles = StyleSheet.create({
   deckArea: {
     flex: 1,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.lg,
+    // Clears the floating tab bar and its raised centre button.
+    paddingBottom: 108,
   },
 });

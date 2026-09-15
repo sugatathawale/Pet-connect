@@ -7,17 +7,16 @@ import React, {
   useState,
 } from 'react';
 
-import { DEFAULT_FILTERS, NEARBY_ALERT_RADIUS_KM } from '@/constants/config';
+import { DEFAULT_FILTERS } from '@/constants/config';
 import { CURRENT_OWNER_ID } from '@/data/seed';
 import { chatService } from '@/services/chatService';
 import { demoService } from '@/services/demoService';
 import { listingService } from '@/services/listingService';
 import { locationService } from '@/services/locationService';
 import { matchService } from '@/services/matchService';
-import { notificationService } from '@/services/notificationService';
 import { petService } from '@/services/petService';
+import { prefetchCache } from '@/services/prefetchCache';
 import type {
-  AppNotification,
   InterestDecision,
   Listing,
   Match,
@@ -26,8 +25,6 @@ import type {
   PetFilters,
   PetLocation,
 } from '@/types';
-import { distanceBetween } from '@/utils/geo';
-import { isWithinWindow } from '@/utils/date';
 
 interface AppState {
   ready: boolean;
@@ -40,8 +37,6 @@ interface AppState {
   activePet: Pet | null;
   matches: Match[];
   listings: Listing[];
-  notifications: AppNotification[];
-  unreadNotifications: number;
   userLocation: PetLocation;
   isLocationPrecise: boolean;
   filters: PetFilters;
@@ -62,8 +57,6 @@ interface AppActions {
   removePet: (id: string) => Promise<void>;
   addListing: (input: Omit<Listing, 'id' | 'createdAt'>) => Promise<Listing>;
   removeListing: (id: string) => Promise<void>;
-  markNotificationsRead: () => Promise<void>;
-  clearNotifications: () => Promise<void>;
   blockOwner: (ownerId: string) => Promise<void>;
   refreshLocation: () => Promise<void>;
   ownerById: (id: string) => Owner | undefined;
@@ -78,7 +71,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pets, setPets] = useState<Pet[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [blockedOwnerIds, setBlockedOwnerIds] = useState<string[]>([]);
   const [activePetId, setActivePetId] = useState<string | null>(null);
   const [filters, setFilters] = useState<PetFilters>(DEFAULT_FILTERS);
@@ -90,13 +82,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLocationPrecise, setIsLocationPrecise] = useState(false);
 
   const loadAll = useCallback(async () => {
-    const [nextOwners, nextPets, nextMatches, nextListings, nextNotifs, nextBlocked] =
+    const [nextOwners, nextPets, nextMatches, nextListings, nextBlocked] =
       await Promise.all([
         petService.listOwners(),
         petService.listPets(),
         matchService.listMatches(),
         listingService.listListings(),
-        notificationService.list(),
         chatService.listBlockedOwners(),
       ]);
 
@@ -104,7 +95,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPets(demoService.relocatePets(nextPets, userLocation));
     setMatches(nextMatches);
     setListings(demoService.relocateListings(nextListings, userLocation));
-    setNotifications(nextNotifs);
     setBlockedOwnerIds(nextBlocked);
 
     // Default the active pet to the owner's first pet.
@@ -150,8 +140,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       setReady(true);
 
-      await notificationService.configureAndroidChannel();
-      await notificationService.requestPermissions();
+      // ── Startup prefetch ───────────────────────────────────────────────────
+      // While the user browses the home screen, warm the cache for likely next
+      // screens (listings, nearby pets, matches) so any tap is instant.
+      void prefetchCache.warm('pets', petService.listPets, 2 * 60 * 1000);
+      void prefetchCache.warm('listings', listingService.listListings, 5 * 60 * 1000);
+      void prefetchCache.warm('matches', matchService.listMatches, 2 * 60 * 1000);
+
       await refreshLocation();
     })();
 
@@ -170,28 +165,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [pets, activePetId],
   );
 
-  /** Alerts the user when a nearby pet's availability window is currently open. */
-  const notifyNearbyAvailability = useCallback(
-    async (candidate: Pet) => {
-      if (!isWithinWindow(candidate.availability.startDate, candidate.availability.endDate)) {
-        return;
-      }
-      // Respect the owner's privacy choice — never leak a private window.
-      if (candidate.availability.visibility !== 'nearby_owners') return;
-
-      const distance = distanceBetween(userLocation, candidate.location);
-      if (distance > NEARBY_ALERT_RADIUS_KM) return;
-
-      await notificationService.push(
-        'nearby_available',
-        'Nearby compatible pet available',
-        `${candidate.name} (${candidate.breed}) is available near you.`,
-        `/pet/${candidate.id}`,
-      );
-    },
-    [userLocation],
-  );
-
   const decide = useCallback(
     async (petId: string, decision: InterestDecision) => {
       if (!activePetId) return { match: null, matchedPet: null };
@@ -205,25 +178,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const { match } = await matchService.recordInterest(activePetId, petId, decision);
 
-      if (match && candidate) {
-        await notificationService.push(
-          'match',
-          '🎉 Pet Connect!',
-          `${activePet?.name ?? 'Your pet'} & ${candidate.name} matched.`,
-          `/chat/${match.id}`,
-        );
-      }
-
-      const refreshed = await Promise.all([
-        matchService.listMatches(),
-        notificationService.list(),
-      ]);
-      setMatches(refreshed[0]);
-      setNotifications(refreshed[1]);
+      setMatches(await matchService.listMatches());
 
       return { match, matchedPet: match ? candidate : null };
     },
-    [activePetId, activePet, pets],
+    [activePetId, pets],
   );
 
   const addPet = useCallback(
@@ -231,28 +190,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const pet = await petService.createPet(input);
       await reloadPets(userLocation);
       setActivePetId((current) => current ?? pet.id);
-
-      if (pet.availability.enabled && pet.availability.startDate) {
-        await notificationService.scheduleAvailabilityReminder(
-          pet.name,
-          pet.availability.startDate,
-        );
-      }
       return pet;
     },
     [reloadPets, userLocation],
   );
 
   const updatePet = useCallback(async (id: string, patch: Partial<Pet>) => {
-    const updated = await petService.updatePet(id, patch);
+    await petService.updatePet(id, patch);
     await reloadPets(userLocation);
-
-    if (updated?.availability.enabled && updated.availability.startDate) {
-      await notificationService.scheduleAvailabilityReminder(
-        updated.name,
-        updated.availability.startDate,
-      );
-    }
   }, [reloadPets, userLocation]);
 
   const removePet = useCallback(async (id: string) => {
@@ -277,46 +222,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await reloadListings(userLocation);
   }, [reloadListings, userLocation]);
 
-  const markNotificationsRead = useCallback(async () => {
-    await notificationService.markAllRead();
-    setNotifications(await notificationService.list());
-  }, []);
-
-  const clearNotifications = useCallback(async () => {
-    await notificationService.clear();
-    setNotifications([]);
-  }, []);
-
   const blockOwner = useCallback(async (ownerId: string) => {
     await chatService.blockOwner(ownerId);
     setBlockedOwnerIds(await chatService.listBlockedOwners());
   }, []);
-
-  // Surface nearby availability once location and pets are both known.
-  useEffect(() => {
-    if (!ready || !isLocationPrecise) return;
-
-    const candidates = pets.filter(
-      (p) => p.ownerId !== CURRENT_OWNER_ID && p.availableForBreeding,
-    );
-    // Only the closest one, so the user is not spammed on launch.
-    const nearest = candidates
-      .map((p) => ({ pet: p, distance: distanceBetween(userLocation, p.location) }))
-      .sort((a, b) => a.distance - b.distance)[0];
-
-    if (!nearest) return;
-
-    let cancelled = false;
-    (async () => {
-      await notifyNearbyAvailability(nearest.pet);
-      if (!cancelled) setNotifications(await notificationService.list());
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // Runs once per location change, not per render.
-  }, [ready, isLocationPrecise, userLocation, pets, notifyNearbyAvailability]);
 
   const value = useMemo(
     () => ({
@@ -329,8 +238,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activePet,
       matches,
       listings,
-      notifications,
-      unreadNotifications: notifications.filter((n) => !n.read).length,
       userLocation,
       isLocationPrecise,
       filters,
@@ -345,8 +252,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removePet,
       addListing,
       removeListing,
-      markNotificationsRead,
-      clearNotifications,
       blockOwner,
       refreshLocation,
       ownerById: (id: string) => owners.find((o) => o.id === id),
@@ -361,7 +266,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       activePet,
       matches,
       listings,
-      notifications,
       userLocation,
       isLocationPrecise,
       filters,
@@ -373,8 +277,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removePet,
       addListing,
       removeListing,
-      markNotificationsRead,
-      clearNotifications,
       blockOwner,
       refreshLocation,
     ],

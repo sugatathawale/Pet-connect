@@ -216,7 +216,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceAlt },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl + 20 },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
   identity: { flexDirection: 'row', gap: spacing.lg, alignItems: 'center' },
   identityText: { flex: 1, gap: 3 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

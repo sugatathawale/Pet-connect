@@ -21,8 +21,6 @@ import { formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
 import { speciesEmoji } from './PetMetaRow';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 /**
  * Spotlight card for the highest-scoring pet nearby.
  *
@@ -74,13 +72,13 @@ export function TopMatchCard({
   }));
 
   return (
-    <AnimatedPressable
-      accessibilityRole="button"
-      accessibilityLabel={`Top match: ${pet.name}, ${compatibility.score}% compatible`}
-      onPress={onPress}
-      entering={FadeInDown.springify().damping(16)}
-      style={({ pressed }: { pressed: boolean }) => [styles.card, pressed && styles.pressed]}
-    >
+    <Animated.View entering={FadeInDown.springify().damping(16)}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Top match: ${pet.name}, ${compatibility.score}% compatible`}
+        onPress={onPress}
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      >
       <Image
         source={{ uri: primaryPhoto(pet.photos) }}
         style={StyleSheet.absoluteFill}
@@ -126,14 +124,15 @@ export function TopMatchCard({
             <Ionicons name="arrow-forward" size={11} color={colors.primaryDark} />
           </View>
         </View>
-      </LinearGradient>
-    </AnimatedPressable>
+        </LinearGradient>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    height: 190,
+    height: 210,
     borderRadius: radius.xl,
     overflow: 'hidden',
     backgroundColor: colors.surfaceAlt,

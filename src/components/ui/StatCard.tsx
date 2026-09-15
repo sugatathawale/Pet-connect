@@ -6,8 +6,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, radius, shadow, spacing } from '@/constants/theme';
 import { AnimatedCounter } from './AnimatedCounter';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 interface StatCardProps {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -32,30 +30,37 @@ export function StatCard({
   onPress,
 }: StatCardProps) {
   return (
-    <AnimatedPressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${label}: ${value}${suffix ?? ''}`}
-      onPress={onPress}
+    <Animated.View
+      style={styles.slot}
       entering={FadeInDown.delay(index * 90).springify().damping(15)}
-      style={({ pressed }: { pressed: boolean }) => [styles.card, pressed && onPress && styles.pressed]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: tintSoft }]}>
-        <Ionicons name={icon} size={16} color={tint} />
-      </View>
+      <Pressable
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={`${label}: ${value}${suffix ?? ''}`}
+        onPress={onPress}
+        style={({ pressed }) => [styles.card, pressed && onPress && styles.pressed]}
+      >
+        <View style={[styles.iconWrap, { backgroundColor: tintSoft }]}>
+          <Ionicons name={icon} size={16} color={tint} />
+        </View>
 
-      <AnimatedCounter value={value} suffix={suffix} style={styles.value} />
-      <Text style={styles.label} numberOfLines={1}>
-        {label}
-      </Text>
-    </AnimatedPressable>
+        <AnimatedCounter value={value} suffix={suffix} style={styles.value} />
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  slot: { flex: 1 },
   card: {
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.md,
     gap: 2,
     ...shadow.card,

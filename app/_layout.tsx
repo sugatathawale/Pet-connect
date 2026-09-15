@@ -1,11 +1,29 @@
-import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Pressable } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppProvider } from '@/context/AppContext';
 import { colors } from '@/constants/theme';
+
+/** Reusable Ionicons back button for the stack header. */
+function BackButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      onPress={() => router.back()}
+      hitSlop={10}
+      style={{ marginLeft: -4 }}
+    >
+      <Ionicons name="chevron-back" size={26} color={colors.primary} />
+    </Pressable>
+  );
+}
 
 /**
  * Root layout.
@@ -26,9 +44,11 @@ export default function RootLayout() {
               headerTintColor: colors.primary,
               headerShadowVisible: false,
               contentStyle: { backgroundColor: colors.surfaceAlt },
+              // Override the default native back button with an Ionicons chevron-back.
+              headerLeft: () => <BackButton />,
             }}
           >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false, headerLeft: undefined }} />
             <Stack.Screen
               name="pet/[id]"
               options={{ title: '', headerTransparent: true }}
@@ -39,7 +59,6 @@ export default function RootLayout() {
             <Stack.Screen name="listing/[id]" options={{ title: 'Listing' }} />
             <Stack.Screen name="listing/new" options={{ title: 'Create listing' }} />
             <Stack.Screen name="owner/[id]" options={{ title: 'Owner' }} />
-            <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
           </Stack>
         </AppProvider>
       </SafeAreaProvider>

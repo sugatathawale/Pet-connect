@@ -20,7 +20,6 @@ import { colors, radius, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useImagePicker } from '@/hooks/useImagePicker';
 import { chatService } from '@/services/chatService';
-import { notificationService } from '@/services/notificationService';
 import type { Message } from '@/types';
 import { approximateLocation } from '@/utils/geo';
 
@@ -118,16 +117,6 @@ export default function ChatScreen() {
     setDraft('');
     await loadMessages();
     await refresh();
-
-    // Nudge the other owner. A real backend would push to their device instead.
-    if (theirPet) {
-      await notificationService.push(
-        'message',
-        `New message about ${theirPet.name}`,
-        kind === 'text' ? body : 'Sent an attachment',
-        `/chat/${id}`,
-      );
-    }
   };
 
   const handleSendText = () => {

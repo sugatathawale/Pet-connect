@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AvailabilityCard } from '@/components/pet/AvailabilityCard';
 import { CompatibilityBreakdown } from '@/components/pet/CompatibilityBreakdown';
 import { PetMetaRow, speciesEmoji } from '@/components/pet/PetMetaRow';
-import { MatchCelebration } from '@/components/pet/MatchCelebration';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -25,12 +24,17 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { colors, radius, shadow, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { matchService } from '@/services/matchService';
+import { prefetchCache } from '@/services/prefetchCache';
+import { prefetchPetPhotos } from '@/utils/imagePreloader';
 import type { Match, Pet } from '@/types';
 import { calculateCompatibility } from '@/utils/compatibility';
 import { formatAge } from '@/utils/date';
 import { distanceBetween, formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
 import { canViewAvailability } from '@/utils/privacy';
+
+// Lazy-load the MatchCelebration modal — it adds ~3 KB that only loads on demand.
+const MatchCelebration = lazy(() => import('@/components/pet/MatchCelebration').then((m) => ({ default: m.MatchCelebration })));
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -47,6 +51,15 @@ export default function PetDetailScreen() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [celebration, setCelebration] = useState<{ match: Match; pet: Pet } | null>(null);
   const [deciding, setDeciding] = useState(false);
+
+  // ── Prefetching ──────────────────────────────────────────────────────────
+  // Warm this pet's own photos so the gallery is ready before the user scrolls.
+  useEffect(() => {
+    if (!pet) return;
+    // Also cache the pet detail under its key so navigating back+forth is instant.
+    void prefetchCache.warm(`pet:${id}`, Promise.resolve(pet), 2 * 60 * 1000);
+    prefetchPetPhotos([pet], pet.photos.length);
+  }, [pet, id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -245,17 +258,20 @@ export default function PetDetailScreen() {
         </View>
       )}
 
-      <MatchCelebration
-        visible={celebration !== null}
-        myPet={activePet}
-        theirPet={celebration?.pet ?? null}
-        onChat={() => {
-          const matchId = celebration?.match.id;
-          setCelebration(null);
-          if (matchId) router.push(`/chat/${matchId}`);
-        }}
-        onKeepBrowsing={() => setCelebration(null)}
-      />
+      {/* MatchCelebration is lazy-loaded — React.Suspense handles the async chunk. */}
+      <React.Suspense fallback={null}>
+        <MatchCelebration
+          visible={celebration !== null}
+          myPet={activePet}
+          theirPet={celebration?.pet ?? null}
+          onChat={() => {
+            const matchId = celebration?.match.id;
+            setCelebration(null);
+            if (matchId) router.push(`/chat/${matchId}`);
+          }}
+          onKeepBrowsing={() => setCelebration(null)}
+        />
+      </React.Suspense>
     </View>
   );
 }
