@@ -9,6 +9,7 @@ import React, {
 
 import { DEFAULT_FILTERS } from '@/constants/config';
 import { CURRENT_OWNER_ID } from '@/data/seed';
+import { authService } from '@/services/authService';
 import { chatService } from '@/services/chatService';
 import { demoService } from '@/services/demoService';
 import { listingService } from '@/services/listingService';
@@ -41,6 +42,14 @@ interface AppState {
   isLocationPrecise: boolean;
   filters: PetFilters;
   blockedOwnerIds: string[];
+  /** True while there is a persisted session in AsyncStorage. */
+  isSignedIn: boolean;
+  /** Email captured at sign-in (or null when signed out). */
+  sessionEmail: string | null;
+  /** Optional display name captured at signup. */
+  sessionName: string | null;
+  /** Bumped whenever the swipe deck is reset for demo/refetch consumers. */
+  decisionsVersion: number;
 }
 
 interface AppActions {
@@ -59,6 +68,18 @@ interface AppActions {
   removeListing: (id: string) => Promise<void>;
   blockOwner: (ownerId: string) => Promise<void>;
   refreshLocation: () => Promise<void>;
+  /**
+   * Persist a demo session for the given email/name and flip `isSignedIn` to true.
+   * Replace the body once a real backend lands; the call signature stays the same.
+   */
+  signIn: (input: { email: string; name?: string | null }) => Promise<void>;
+  /** Wipe the stored demo session and flip `isSignedIn` to false. */
+  signOut: () => Promise<void>;
+  /**
+   * Re-open the swipe deck by clearing this viewer's stored decisions.
+   * Existing matches are kept — this only resets what is undecided.
+   */
+  resetDemoDecisions: () => Promise<void>;
   ownerById: (id: string) => Owner | undefined;
   petById: (id: string) => Pet | undefined;
 }
@@ -80,6 +101,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     label: 'New Delhi',
   });
   const [isLocationPrecise, setIsLocationPrecise] = useState(false);
+  const [session, setSession] = useState<{ email: string; name: string | null } | null>(
+    null,
+  );
+  const [decisionsVersion, setDecisionsVersion] = useState(0);
 
   const loadAll = useCallback(async () => {
     const [nextOwners, nextPets, nextMatches, nextListings, nextBlocked] =
@@ -131,13 +156,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await Promise.all([reloadPets(location), reloadListings(location)]);
   }, [reloadPets, reloadListings]);
 
+  /**
+   * Persist a demo session and flip local auth state. Once a real backend is
+   * wired in this should swap the AsyncStorage call for a token exchange.
+   */
+  const signIn = useCallback(
+    async ({ email, name = null }: { email: string; name?: string | null }) => {
+      const next = await authService.signInDemo({ email, name });
+      setSession({ email: next.email, name: next.name });
+    },
+    [],
+  );
+
+  /** Wipe the demo session. The (tabs) layout will redirect to /login. */
+  const signOut = useCallback(async () => {
+    await authService.signOut();
+    setSession(null);
+  }, []);
+
+  /**
+   * Re-open the swipe deck by clearing this viewer's stored interests.
+   * Bumping `decisionsVersion` lets consumers (useNearbyPets) know to refetch.
+   */
+  const resetDemoDecisions = useCallback(async () => {
+    if (!activePetId) return;
+    await matchService.resetDemoDecisions(activePetId);
+    setDecisionsVersion((v) => v + 1);
+  }, [activePetId]);
+
   // Bootstrap: data first so the UI can paint, then the slower device calls.
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
+      // Hydrate the demo session alongside the rest of the boot. Both must
+      // resolve before `ready` flips, so screens never see a half-loaded app.
+      const storedSession = await authService.getSession();
       await loadAll();
       if (cancelled) return;
+
+      setSession(
+        storedSession
+          ? { email: storedSession.email, name: storedSession.name }
+          : null,
+      );
       setReady(true);
 
       // ── Startup prefetch ───────────────────────────────────────────────────
@@ -242,6 +304,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isLocationPrecise,
       filters,
       blockedOwnerIds,
+      isSignedIn: session !== null,
+      sessionEmail: session?.email ?? null,
+      sessionName: session?.name ?? null,
+      decisionsVersion,
       refresh: loadAll,
       setActivePetId,
       setFilters,
@@ -254,6 +320,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removeListing,
       blockOwner,
       refreshLocation,
+      signIn,
+      signOut,
+      resetDemoDecisions,
       ownerById: (id: string) => owners.find((o) => o.id === id),
       petById: (id: string) => pets.find((p) => p.id === id),
     }),
@@ -270,6 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       isLocationPrecise,
       filters,
       blockedOwnerIds,
+      decisionsVersion,
       loadAll,
       decide,
       addPet,
@@ -279,6 +349,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removeListing,
       blockOwner,
       refreshLocation,
+      signIn,
+      signOut,
+      resetDemoDecisions,
     ],
   );
 

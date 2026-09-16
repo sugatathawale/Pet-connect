@@ -2,15 +2,14 @@
  * Image preloading utility.
  *
  * Architecture note for interviewers:
- * - expo-image caches images automatically, but only after they render.
- * - Calling Image.prefetch() eagerly warms that cache so card images
+ * - React Native's Image.prefetch() warms the HTTP cache so card images
  *   appear instantly when the user scrolls into view.
  * - We batch prefetch calls to avoid overwhelming the image pipeline.
- * - Fallback is safe — expo-image will still load the image normally if
- *   prefetch is still running or fails silently.
+ * - Fallback is safe — Image will still load normally if prefetch
+ *   is still running or fails silently.
  */
 
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 
 // Keep a module-level Set of already-prefetched URLs to avoid re-fetching.
 const prefetched = new Set<string>();
@@ -37,7 +36,7 @@ export async function prefetchImages(
         Image.prefetch(url)
           .then(() => prefetched.add(url))
           .catch(() => {
-            /* Non-fatal: expo-image will load normally on render */
+            /* Non-fatal: Image will load normally on render */
           }),
       ),
     );

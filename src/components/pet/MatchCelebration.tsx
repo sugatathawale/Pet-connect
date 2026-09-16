@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
@@ -36,14 +36,14 @@ export function MatchCelebration({
           </Text>
 
           <View style={styles.photos}>
-            <Image source={{ uri: primaryPhoto(myPet.photos) }} style={styles.photo} contentFit="cover" />
+            <Image source={{ uri: primaryPhoto(myPet.photos) }} style={styles.photo} resizeMode="cover" />
             <View style={styles.heartBubble}>
               <Text style={styles.heart}>❤️</Text>
             </View>
             <Image
               source={{ uri: primaryPhoto(theirPet.photos) }}
               style={styles.photo}
-              contentFit="cover"
+              resizeMode="cover"
             />
           </View>
 

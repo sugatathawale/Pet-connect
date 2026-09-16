@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
@@ -30,6 +30,8 @@ export default function ProfileScreen() {
     userLocation,
     refreshLocation,
     isLocationPrecise,
+    sessionEmail,
+    signOut,
   } = useApp();
 
   const owner = ownerById(currentOwnerId);
@@ -39,6 +41,17 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => removePet(petId) },
     ]);
+  };
+
+  const confirmLogout = () => {
+    Alert.alert(
+      'Log out?',
+      'You will need to sign back in to use Pet Connect.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: () => void signOut() },
+      ],
+    );
   };
 
   return (
@@ -125,7 +138,7 @@ export default function ProfileScreen() {
                   <Image
                     source={{ uri: primaryPhoto(pet.photos) }}
                     style={styles.petPhoto}
-                    contentFit="cover"
+                    resizeMode="cover"
                   />
                   <View style={styles.petInfo}>
                     <View style={styles.petNameRow}>
@@ -207,6 +220,26 @@ export default function ProfileScreen() {
         >
           <Ionicons name="notifications-outline" size={19} color={colors.ink} />
           <Text style={styles.linkRowLabel}>View all notifications</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
+        </Pressable>
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader title="Account" />
+        {sessionEmail ? (
+          <View style={styles.linkRow}>
+            <Ionicons name="mail-outline" size={19} color={colors.inkMuted} />
+            <Text style={styles.linkRowLabel}>{sessionEmail}</Text>
+          </View>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Log out"
+          onPress={confirmLogout}
+          style={[styles.linkRow, styles.logoutRow]}
+        >
+          <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+          <Text style={[styles.linkRowLabel, styles.logoutLabel]}>Log out</Text>
           <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
         </Pressable>
       </View>
@@ -311,4 +344,6 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   linkRowLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.ink },
+  logoutRow: { marginTop: spacing.md },
+  logoutLabel: { color: colors.danger },
 });

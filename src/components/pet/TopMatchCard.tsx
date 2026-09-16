@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -82,8 +82,7 @@ export function TopMatchCard({
       <Image
         source={{ uri: primaryPhoto(pet.photos) }}
         style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        transition={220}
+        resizeMode="cover"
       />
 
       {/* Moving highlight — purely decorative. */}

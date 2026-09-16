@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -207,8 +207,7 @@ function CardFace({ item }: { item: PetWithContext }) {
       <Image
         source={{ uri: primaryPhoto(pet.photos) }}
         style={styles.photo}
-        contentFit="cover"
-        transition={200}
+        resizeMode="cover"
       />
 
       <View style={styles.scoreFloat}>

@@ -11,9 +11,19 @@ interface EmptyStateProps {
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: () => void;
 }
 
-export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  message,
+  actionLabel,
+  onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+}: EmptyStateProps) {
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
@@ -23,6 +33,14 @@ export function EmptyState({ icon, title, message, actionLabel, onAction }: Empt
       <Text style={styles.message}>{message}</Text>
       {actionLabel && onAction && (
         <Button label={actionLabel} onPress={onAction} style={styles.action} />
+      )}
+      {secondaryActionLabel && onSecondaryAction && (
+        <Button
+          label={secondaryActionLabel}
+          onPress={onSecondaryAction}
+          variant="secondary"
+          style={styles.secondaryAction}
+        />
       )}
     </View>
   );
@@ -52,4 +70,5 @@ const styles = StyleSheet.create({
     maxWidth: 300,
   },
   action: { marginTop: spacing.xl, alignSelf: 'stretch' },
+  secondaryAction: { marginTop: spacing.md, alignSelf: 'stretch' },
 });

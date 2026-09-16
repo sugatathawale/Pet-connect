@@ -12,7 +12,16 @@ import { distanceBetween } from '@/utils/geo';
  * relative to the viewer's active pet, sorted best-match first.
  */
 export function useNearbyPets() {
-  const { pets, currentOwnerId, activePet, userLocation, filters, blockedOwnerIds } = useApp();
+  const {
+    pets,
+    currentOwnerId,
+    activePet,
+    userLocation,
+    filters,
+    blockedOwnerIds,
+    /** Re-runs the decision-ids fetch when the deck is reset for demos. */
+    decisionsVersion,
+  } = useApp();
   const [decidedIds, setDecidedIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -30,7 +39,7 @@ export function useNearbyPets() {
     return () => {
       cancelled = true;
     };
-  }, [activePet, pets]);
+  }, [activePet, pets, decisionsVersion]);
 
   const decorated = useMemo<PetWithContext[]>(() => {
     return pets

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { lazy, useEffect, useMemo, useState } from 'react';
 import {
@@ -130,7 +130,7 @@ export default function PetDetailScreen() {
             }
           >
             {gallery.map((uri) => (
-              <Image key={uri} source={{ uri }} style={styles.photo} contentFit="cover" />
+              <Image key={uri} source={{ uri }} style={styles.photo} resizeMode="cover" />
             ))}
           </ScrollView>
 

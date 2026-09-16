@@ -102,12 +102,12 @@ export const matchService = {
   /**
    * Demo stand-in for the other owner tapping "interested".
    *
-   * Pets that are open to breeding reciprocate; the rest do not, so matches still
-   * feel earned rather than guaranteed.
+   * For demo purposes every candidate reciprocates so swiping right reliably
+   * produces a match — so the deck feels full and demos stay punchy. A real
+   * backend would delete this whole function and let the other owner's device
+   * record its own interest.
    */
   async simulateReciprocalInterest(candidate: Pet, viewerPetId: string): Promise<void> {
-    if (!candidate.availableForBreeding) return;
-
     const interests = await this.listInterests();
     const alreadyResponded = interests.some(
       (i) => i.fromPetId === candidate.id && i.toPetId === viewerPetId,
@@ -137,5 +137,16 @@ export const matchService = {
       lastMessageAt: new Date().toISOString(),
     };
     await storage.set(STORAGE_KEYS.matches, matches);
+  },
+
+  /**
+   * Wipe this viewer's decisions so the swipe deck refills with the same demo
+   * pets again. Existing matches are intentionally preserved — this is only
+   * about resetting the deck for demo and exploration.
+   */
+  async resetDemoDecisions(fromPetId: string): Promise<void> {
+    const interests = await this.listInterests();
+    const kept = interests.filter((i) => i.fromPetId !== fromPetId);
+    await storage.set(STORAGE_KEYS.interests, kept);
   },
 };

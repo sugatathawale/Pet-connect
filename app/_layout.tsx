@@ -49,6 +49,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false, headerLeft: undefined }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="signup" options={{ headerShown: false }} />
             <Stack.Screen
               name="pet/[id]"
               options={{ title: '', headerTransparent: true }}

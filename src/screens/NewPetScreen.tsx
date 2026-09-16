@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -133,7 +133,7 @@ export default function NewPetScreen() {
         <View style={styles.photoRow}>
           {photos.map((uri, index) => (
             <View key={uri} style={styles.photoWrap}>
-              <Image source={{ uri }} style={styles.photo} contentFit="cover" />
+              <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Remove photo ${index + 1}`}

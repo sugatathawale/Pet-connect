@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -16,7 +16,7 @@ export function MessageBubble({ message, isMine }: { message: Message; isMine: b
         )}
 
         {message.kind === 'image' && (
-          <Image source={{ uri: message.body }} style={styles.image} contentFit="cover" />
+          <Image source={{ uri: message.body }} style={styles.image} resizeMode="cover" />
         )}
 
         {message.kind === 'location' && (

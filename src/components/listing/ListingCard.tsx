@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -25,8 +25,7 @@ export function ListingCard({ listing, onPress }: { listing: Listing; onPress: (
       <Image
         source={{ uri: primaryPhoto(listing.photos) }}
         style={styles.photo}
-        contentFit="cover"
-        transition={180}
+        resizeMode="cover"
       />
 
       <View style={styles.body}>

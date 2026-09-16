@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SwipeDeck } from '@/components/pet/SwipeDeck';
@@ -17,8 +18,8 @@ import type { InterestDecision, Match, Pet } from '@/types';
 export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { activePet, myPets, decide } = useApp();
-  const { undecided } = useNearbyPets();
+  const { activePet, myPets, decide, resetDemoDecisions } = useApp();
+  const { undecided, totalNearby } = useNearbyPets();
 
   const [celebration, setCelebration] = useState<{ match: Match; pet: Pet } | null>(null);
 
@@ -52,10 +53,29 @@ export default function DiscoverScreen() {
     [decide],
   );
 
+  const handleRefreshDeck = useCallback(() => {
+    if (undecided.length === 0 && totalNearby === 0) {
+      Alert.alert(
+        'No demo pets nearby',
+        'Widen your filters on the Nearby tab or pull them closer.',
+        [{ text: 'Open Nearby', onPress: () => router.push('/') }],
+      );
+      return;
+    }
+    Alert.alert(
+      'Browse the demo deck again?',
+      'Reopens the same pets so you can swipe through them a second time. Your existing matches are kept.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset deck', style: 'destructive', onPress: () => void resetDemoDecisions() },
+      ],
+    );
+  }, [undecided.length, totalNearby, resetDemoDecisions, router]);
+
   if (myPets.length === 0) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <Header />
+        <Header onRefreshDeck={handleRefreshDeck} />
         <EmptyState
           icon="add-circle-outline"
           title="Add your pet first"
@@ -69,7 +89,7 @@ export default function DiscoverScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Header petName={activePet?.name} />
+      <Header petName={activePet?.name} onRefreshDeck={handleRefreshDeck} />
 
       <View style={styles.deckArea}>
         {undecided.length > 0 ? (
@@ -82,9 +102,11 @@ export default function DiscoverScreen() {
           <EmptyState
             icon="checkmark-done-outline"
             title="You're all caught up"
-            message="You've seen every pet nearby. Widen your filters on the Nearby tab to find more."
-            actionLabel="Adjust filters"
-            onAction={() => router.push('/')}
+            message="You've seen every pet nearby. Reset the deck to swipe through the same demos again, or widen your filters on the Nearby tab."
+            actionLabel="Reset deck"
+            secondaryActionLabel="Adjust filters"
+            onAction={() => void resetDemoDecisions()}
+            onSecondaryAction={() => router.push('/')}
           />
         )}
       </View>
@@ -117,13 +139,32 @@ function LazyMatchCelebration(props: React.ComponentProps<typeof import('@/compo
   return <Comp {...props} />;
 }
 
-function Header({ petName }: { petName?: string }) {
+function Header({
+  petName,
+  onRefreshDeck,
+}: {
+  petName?: string;
+  onRefreshDeck?: () => void;
+}) {
   return (
     <View style={styles.header}>
-      <Text style={styles.title}>Find a match</Text>
-      <Text style={styles.subtitle}>
-        {petName ? `Matching as ${petName}` : 'Swipe right to show interest'}
-      </Text>
+      <View style={styles.headerText}>
+        <Text style={styles.title}>Find a match</Text>
+        <Text style={styles.subtitle}>
+          {petName ? `Matching as ${petName}` : 'Swipe right to show interest'}
+        </Text>
+      </View>
+      {onRefreshDeck ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Reset demo deck"
+          onPress={onRefreshDeck}
+          hitSlop={10}
+          style={styles.refreshButton}
+        >
+          <Ionicons name="refresh" size={22} color={colors.primary} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -131,12 +172,24 @@ function Header({ petName }: { petName?: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surfaceAlt },
   header: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.lg,
   },
+  headerText: { flex: 1 },
   title: { fontSize: 25, fontWeight: '800', color: colors.ink },
   subtitle: { fontSize: 13, color: colors.inkMuted, marginTop: 2 },
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
   deckArea: {
     flex: 1,
     paddingHorizontal: spacing.lg,

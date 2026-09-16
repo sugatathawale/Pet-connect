@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -28,8 +28,7 @@ export function Avatar({ uri, name, size = 44 }: AvatarProps) {
     <Image
       source={{ uri }}
       style={[styles.image, dimension]}
-      contentFit="cover"
-      transition={150}
+      resizeMode="cover"
     />
   );
 }

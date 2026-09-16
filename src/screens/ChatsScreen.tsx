@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -66,7 +66,7 @@ export default function ChatsScreen() {
             <Image
               source={{ uri: primaryPhoto(item.theirPet!.photos) }}
               style={styles.photo}
-              contentFit="cover"
+              resizeMode="cover"
             />
 
             <View style={styles.rowBody}>

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -52,8 +52,7 @@ export function AvailableNowRail({
                 <Image
                   source={{ uri: primaryPhoto(item.pet.photos) }}
                   style={styles.avatar}
-                  contentFit="cover"
-                  transition={160}
+                  resizeMode="cover"
                 />
                 <View style={styles.liveDot} />
               </View>

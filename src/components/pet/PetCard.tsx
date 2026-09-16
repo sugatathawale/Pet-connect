@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { Image } from 'react-native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -29,8 +29,7 @@ export function PetCard({ item, onPress }: PetCardProps) {
       <Image
         source={{ uri: primaryPhoto(pet.photos) }}
         style={styles.photo}
-        contentFit="cover"
-        transition={180}
+        resizeMode="cover"
       />
 
       <View style={styles.body}>
