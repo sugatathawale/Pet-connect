@@ -19,7 +19,7 @@ import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
 import { CategoryRail } from '@/components/pet/CategoryRail';
 import { PetCard } from '@/components/pet/PetCard';
 import { TopMatchCard } from '@/components/pet/TopMatchCard';
-import { StatCard } from '@/components/ui/StatCard';
+import { StatsStrip } from '@/components/ui/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DEFAULT_FILTERS } from '@/constants/config';
 import { colors, radius, spacing } from '@/constants/theme';
@@ -111,26 +111,6 @@ export default function NearbyScreen() {
 
       <SideMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      <View style={styles.filterBar}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setFiltersOpen(true)}
-          style={styles.filterButton}
-        >
-          <Ionicons name="options-outline" size={17} color={colors.ink} />
-          <Text style={styles.filterLabel}>Filters</Text>
-          {activeFilterCount > 0 && (
-            <View style={styles.filterCount}>
-              <Text style={styles.filterCountText}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </Pressable>
-
-        <Text style={styles.resultCount}>
-          {all.length} of {totalNearby} nearby
-        </Text>
-      </View>
-
       <FlatList
         data={all}
         keyExtractor={(item) => item.pet.id}
@@ -171,46 +151,27 @@ export default function NearbyScreen() {
               </Pressable>
             )}
 
-            <CategoryRail
-              filters={filters}
-              onSelect={(patch) => setFilters({ ...filters, ...patch })}
-            />
+            <View style={styles.categoryRow}>
+              <View style={styles.categoryRail}>
+                <CategoryRail
+                  filters={filters}
+                  onSelect={(patch) => setFilters({ ...filters, ...patch })}
+                />
+              </View>
 
-            <View style={styles.statsRow}>
-              <StatCard
-                index={0}
-                icon="paw"
-                label="Nearby"
-                value={totalNearby}
-                tint={colors.primary}
-                tintSoft={colors.primarySoft}
-              />
-              <StatCard
-                index={1}
-                icon="heart"
-                label="Matches"
-                value={matches.length}
-                tint={colors.female}
-                tintSoft={colors.femaleSoft}
-                onPress={() => router.push('/chats')}
-              />
-              <StatCard
-                index={2}
-                icon="flash"
-                label="Available"
-                value={availableNow.length}
-                tint={colors.success}
-                tintSoft={colors.successSoft}
-              />
-              <StatCard
-                index={3}
-                icon="trending-up"
-                label="Best"
-                value={bestScore}
-                suffix="%"
-                tint={colors.accent}
-                tintSoft={colors.accentSoft}
-              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Filters"
+                onPress={() => setFiltersOpen(true)}
+                style={styles.filterFab}
+              >
+                <Ionicons name="options-outline" size={18} color={colors.ink} />
+                {activeFilterCount > 0 && (
+                  <View style={styles.filterCount}>
+                    <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+                  </View>
+                )}
+              </Pressable>
             </View>
 
             {topMatch && (
@@ -225,8 +186,26 @@ export default function NearbyScreen() {
               onSelect={(petId) => router.push(`/pet/${petId}`)}
             />
 
+            <StatsStrip
+              items={[
+                { label: 'Nearby', value: totalNearby },
+                {
+                  label: 'Matches',
+                  value: matches.length,
+                  onPress: () => router.push('/chats'),
+                },
+                { label: 'Available', value: availableNow.length },
+                { label: 'Best', value: bestScore, suffix: '%' },
+              ]}
+            />
+
             {all.length > 0 && (
-              <Text style={styles.sectionTitle}>All pets nearby</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>All pets nearby</Text>
+                <Text style={styles.resultCount}>
+                  {all.length} of {totalNearby}
+                </Text>
+              </View>
             )}
           </View>
         }
@@ -325,48 +304,51 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.surface,
   },
-  filterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    backgroundColor: colors.surface,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  filterLabel: { fontSize: 13, fontWeight: '600', color: colors.ink },
   filterCount: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 3,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.surfaceAlt,
   },
-  filterCountText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  filterCountText: { color: '#FFFFFF', fontSize: 9, fontWeight: '800' },
+  categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  categoryRail: { flex: 1, minWidth: 0 },
+  filterFab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
   resultCount: { fontSize: 12, color: colors.inkFaint, fontWeight: '500' },
   list: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
-  statsRow: {
+  sectionHeader: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.ink,
-    marginBottom: spacing.md,
   },
   banner: {
     flexDirection: 'row',

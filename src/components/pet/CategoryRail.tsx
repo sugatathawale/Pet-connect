@@ -98,8 +98,12 @@ export function CategoryRail({
 }
 
 const styles = StyleSheet.create({
-  rail: { gap: spacing.lg, paddingRight: spacing.lg, paddingBottom: spacing.sm },
-  item: { alignItems: 'center', width: 66, gap: 6 },
+  rail: {
+    gap: spacing.md + 2,
+    paddingRight: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  item: { alignItems: 'center', width: 60, gap: 6 },
   pressed: { opacity: 0.7, transform: [{ scale: 0.95 }] },
   circle: {
     width: 56,
