@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +19,7 @@ import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
 import { CategoryRail } from '@/components/pet/CategoryRail';
 import { PET_CARD_HEIGHT, PetCard } from '@/components/pet/PetCard';
 import { TopMatchCard } from '@/components/pet/TopMatchCard';
+import { AssistantPromo } from '@/components/ui/AssistantPromo';
 import { StatsStrip } from '@/components/ui/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DEFAULT_FILTERS } from '@/constants/config';
@@ -26,6 +27,8 @@ import { colors, radius, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useNearbyPets } from '@/hooks/useNearbyPets';
 import type { PetWithContext } from '@/types';
+
+const PAGE_SIZE = 5;
 
 /** Home: pets around the user, sorted by compatibility. */
 export default function NearbyScreen() {
@@ -46,12 +49,20 @@ export default function NearbyScreen() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setPageSize(PAGE_SIZE);
     await refresh();
     setRefreshing(false);
   }, [refresh]);
+
+  // Reset pagination whenever filters change.
+  useEffect(() => {
+    setPageSize(PAGE_SIZE);
+  }, [filters]);
 
   const activeFilterCount = countActiveFilters(filters);
 
@@ -61,6 +72,9 @@ export default function NearbyScreen() {
     () => all.filter((item) => item.pet.availableForBreeding),
     [all],
   );
+
+  const visiblePets = useMemo(() => all.slice(0, pageSize), [all, pageSize]);
+  const hasMore = pageSize < all.length;
 
   const openPet = useCallback(
     (petId: string) => {
@@ -75,6 +89,15 @@ export default function NearbyScreen() {
     },
     [filters, setFilters],
   );
+
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      setPageSize((n) => Math.min(n + PAGE_SIZE, all.length));
+      setLoadingMore(false);
+    }, 280);
+  }, [hasMore, loadingMore, all.length]);
 
   const keyExtractor = useCallback((item: PetWithContext) => item.pet.id, []);
 
@@ -93,6 +116,39 @@ export default function NearbyScreen() {
     }),
     [],
   );
+
+  const listFooter = useMemo(() => {
+    if (all.length === 0) return null;
+
+    if (hasMore) {
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Load more pets"
+          onPress={loadMore}
+          disabled={loadingMore}
+          style={({ pressed }) => [styles.loadMore, pressed && styles.loadMorePressed]}
+        >
+          {loadingMore ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <>
+              <Text style={styles.loadMoreText}>Load more</Text>
+              <Text style={styles.loadMoreMeta}>
+                {visiblePets.length} of {all.length}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      );
+    }
+
+    return (
+      <Text style={styles.endLabel}>
+        Showing all {all.length} pets
+      </Text>
+    );
+  }, [all.length, hasMore, loadMore, loadingMore, visiblePets.length]);
 
   const listHeader = useMemo(
     () => (
@@ -141,6 +197,8 @@ export default function NearbyScreen() {
           />
         )}
 
+        <AssistantPromo />
+
         <AvailableNowRail items={availableNow} onSelect={openPet} />
 
         <StatsStrip
@@ -160,7 +218,7 @@ export default function NearbyScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>All pets nearby</Text>
             <Text style={styles.resultCount}>
-              {all.length} of {totalNearby}
+              {visiblePets.length} of {all.length}
             </Text>
           </View>
         )}
@@ -179,6 +237,7 @@ export default function NearbyScreen() {
       matches.length,
       bestScore,
       all.length,
+      visiblePets.length,
     ],
   );
 
@@ -230,11 +289,12 @@ export default function NearbyScreen() {
       <SideMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <FlatList
-        data={all}
+        data={visiblePets}
         keyExtractor={keyExtractor}
         renderItem={renderPet}
         getItemLayout={getItemLayout}
         ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
         ListEmptyComponent={
           <EmptyState
             icon="paw-outline"
@@ -253,10 +313,10 @@ export default function NearbyScreen() {
             tintColor={colors.primary}
           />
         }
-        initialNumToRender={6}
-        maxToRenderPerBatch={8}
+        initialNumToRender={PAGE_SIZE}
+        maxToRenderPerBatch={PAGE_SIZE}
         updateCellsBatchingPeriod={50}
-        windowSize={7}
+        windowSize={5}
         removeClippedSubviews
       />
 
@@ -378,6 +438,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.ink,
+  },
+  loadMore: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
+    paddingVertical: 14,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  loadMorePressed: { opacity: 0.85 },
+  loadMoreText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  loadMoreMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.inkFaint,
+  },
+  endLabel: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.inkFaint,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
   },
   banner: {
     flexDirection: 'row',
