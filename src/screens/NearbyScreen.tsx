@@ -13,6 +13,7 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SideMenu } from '@/components/menu/SideMenu';
 import { FilterSheet } from '@/components/pet/FilterSheet';
 import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
 import { CategoryRail } from '@/components/pet/CategoryRail';
@@ -43,6 +44,7 @@ export default function NearbyScreen() {
   const { all, availableBreeds, totalNearby } = useNearbyPets();
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -72,6 +74,15 @@ export default function NearbyScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open menu"
+          onPress={() => setMenuOpen(true)}
+          style={styles.menuButton}
+        >
+          <Ionicons name="menu" size={22} color={colors.ink} />
+        </Pressable>
+
         <View style={styles.headerText}>
           <Text style={styles.greeting}>Nearby pets</Text>
           <Pressable
@@ -97,6 +108,8 @@ export default function NearbyScreen() {
           {unreadNotifications > 0 && <View style={styles.dot} />}
         </Pressable>
       </View>
+
+      <SideMenu visible={menuOpen} onClose={() => setMenuOpen(false)} />
 
       <View style={styles.filterBar}>
         <Pressable
@@ -274,6 +287,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
     gap: spacing.md,
+  },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerText: { flex: 1 },
   greeting: { fontSize: 25, fontWeight: '800', color: colors.ink },

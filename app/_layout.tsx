@@ -61,6 +61,12 @@ export default function RootLayout() {
             <Stack.Screen name="listing/[id]" options={{ title: 'Listing' }} />
             <Stack.Screen name="listing/new" options={{ title: 'Create listing' }} />
             <Stack.Screen name="owner/[id]" options={{ title: 'Owner' }} />
+            <Stack.Screen
+              name="assistant"
+              options={{ headerShown: false, animation: 'slide_from_right' }}
+            />
+            <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+            <Stack.Screen name="support" options={{ title: 'Support' }} />
           </Stack>
         </AppProvider>
       </SafeAreaProvider>

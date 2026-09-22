@@ -40,10 +40,13 @@ app/                        Routes only — thin re-exports, no screen logic
     new.tsx                 → NewListingScreen
   owner/[id].tsx            → OwnerScreen
   notifications.tsx         → NotificationsScreen
+  assistant.tsx             → AIAssistantScreen (Agno FAQ / breed KB)
+  settings.tsx              → SettingsScreen
+  support.tsx               → SupportScreen
 
 src/
   screens/                  Every screen lives here
-    NearbyScreen.tsx        Nearby pets (home)
+    NearbyScreen.tsx        Nearby pets (home) — menu opens AI / settings / support
     DiscoverScreen.tsx      Swipe-to-match deck
     ListingsScreen.tsx      Adopt & sell marketplace
     ChatsScreen.tsx         Conversation list
@@ -56,11 +59,15 @@ src/
     NewListingScreen.tsx    Create a listing
     OwnerScreen.tsx         Public owner profile
     NotificationsScreen.tsx Notification feed
+    AIAssistantScreen.tsx   In-app assistant (local KB + optional Agno API)
+    SettingsScreen.tsx      Notification preferences
+    SupportScreen.tsx       Help & safety
   components/
     ui/                     Generic primitives (Button, Badge, Chip, Field, Avatar…)
     pet/                    PetCard, SwipeDeck, FilterSheet, AvailabilityCard…
     chat/                   MessageBubble
     listing/                ListingCard
+    menu/                   SideMenu (header drawer)
   constants/
     theme.ts                Design tokens — colours, overlays, space, radius
     config.ts               Score weights, filter defaults, storage keys
@@ -75,9 +82,14 @@ src/
     notificationService.ts  In-app feed + local device notifications
     locationService.ts      Device location with graceful fallback
     demoService.ts          Demo-only: places seed data around the user
+    aiAssistantService.ts   Agno chat API + local KB fallback
   types/index.ts            Domain model — the contract for everything above
-  utils/                    geo (haversine), date (age), compatibility, privacy
-  data/seed.ts              Demo pets/owners/listings
+  utils/                    geo, date, compatibility, privacy, intentMatcher
+  data/
+    seed.ts                 Demo pets/owners/listings
+    knowledge/entries.ts    Local FAQ / breed knowledge (offline fallback)
+
+backend/ai_assistant/       Optional Agno + FastAPI knowledge service
 ```
 
 **Why `app/` still exists:** expo-router derives routes from the file tree, so
@@ -99,6 +111,24 @@ stay put because they configure navigators rather than render screens.
 | Owner profile | [ProfileScreen](src/screens/ProfileScreen.tsx), [OwnerScreen](src/screens/OwnerScreen.tsx) |
 | Notifications | [notificationService](src/services/notificationService.ts) |
 | Pet Connect Score | [compatibility.ts](src/utils/compatibility.ts) |
+| AI Assistant / FAQ | [AIAssistantScreen](src/screens/AIAssistantScreen.tsx), [backend/ai_assistant](backend/ai_assistant) |
+
+## AI Assistant (Agno)
+
+Hamburger menu on Nearby (left of the location) opens **AI Assistant**, Settings, Support, and more.
+
+- **Local KB** always answers greetings, app FAQs, and dog/cat breed questions (intent scraping + guardrails).
+- **Optional Agno backend** for RAG over the same markdown knowledge bases:
+
+```bash
+cd backend/ai_assistant
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env   # set OPENAI_API_KEY
+uvicorn main:app --reload --port 8787
+```
+
+Set `EXPO_PUBLIC_AI_API_URL` if the API is not on `localhost:8787`.
 
 ## Home dashboard
 

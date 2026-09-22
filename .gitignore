@@ -31,7 +31,14 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# AI assistant
+backend/ai_assistant/.venv/
+backend/ai_assistant/tmp/
+backend/ai_assistant/__pycache__/
+backend/ai_assistant/**/__pycache__/
 
 # typescript
 *.tsbuildinfo
