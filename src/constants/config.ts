@@ -32,12 +32,12 @@ export const FALLBACK_LOCATION = {
 } as const;
 
 export const STORAGE_KEYS = {
-  pets: 'petconnect:pets',
+  pets: 'petconnect:pets:v3',
   interests: 'petconnect:interests',
   matches: 'petconnect:matches',
   messages: 'petconnect:messages',
-  listings: 'petconnect:listings',
+  listings: 'petconnect:listings:v3',
   notifications: 'petconnect:notifications',
   blocked: 'petconnect:blocked',
-  seeded: 'petconnect:seeded:v1',
+  seeded: 'petconnect:seeded:v3',
 } as const;

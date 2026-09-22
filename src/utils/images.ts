@@ -1,5 +1,5 @@
 /** Neutral paw-print placeholder shown when a pet has no photo. */
-const PLACEHOLDER =
+export const PLACEHOLDER_PHOTO =
   'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=600&q=70';
 
 /**
@@ -9,5 +9,5 @@ const PLACEHOLDER =
  * image rather than an empty grey box.
  */
 export function primaryPhoto(photos: string[]): string {
-  return photos[0] ?? PLACEHOLDER;
+  return photos[0] ?? PLACEHOLDER_PHOTO;
 }

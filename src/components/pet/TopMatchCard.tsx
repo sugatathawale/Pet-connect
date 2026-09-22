@@ -18,7 +18,7 @@ import { colors, overlay, radius, shadow, spacing } from '@/constants/theme';
 import type { PetWithContext } from '@/types';
 import { formatAge } from '@/utils/date';
 import { formatDistance } from '@/utils/geo';
-import { primaryPhoto } from '@/utils/images';
+import { PLACEHOLDER_PHOTO, primaryPhoto } from '@/utils/images';
 
 /**
  * Spotlight card for the highest-scoring pet nearby.
@@ -76,9 +76,11 @@ export function TopMatchCard({
       >
         <Image
           source={{ uri: primaryPhoto(pet.photos) }}
+          placeholder={{ uri: PLACEHOLDER_PHOTO }}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           transition={200}
+          recyclingKey={pet.id}
         />
 
         <Animated.View style={[styles.sheen, sheenStyle]} pointerEvents="none">
