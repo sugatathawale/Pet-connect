@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -19,14 +19,10 @@ import type { PetWithContext } from '@/types';
 import { formatAge } from '@/utils/date';
 import { formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
-import { speciesEmoji } from './PetMetaRow';
 
 /**
  * Spotlight card for the highest-scoring pet nearby.
- *
- * The sheen sweep and score pulse are decorative but deliberately slow and
- * non-looping-on-content, so the card feels alive without pulling attention off
- * the feed below it.
+ * Full-bleed photo, soft sheen, glass badge — no emoji clutter.
  */
 export function TopMatchCard({
   item,
@@ -41,11 +37,10 @@ export function TopMatchCard({
   const pulse = useSharedValue(0);
 
   useEffect(() => {
-    // A slow sweep across the photo, with a long pause between passes.
     sheen.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) }),
-        withTiming(1, { duration: 2600 }),
+        withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }),
+        withTiming(1, { duration: 2800 }),
         withTiming(0, { duration: 0 }),
       ),
       -1,
@@ -54,8 +49,8 @@ export function TopMatchCard({
 
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+        withTiming(0, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
       ),
       -1,
       false,
@@ -63,12 +58,12 @@ export function TopMatchCard({
   }, [sheen, pulse]);
 
   const sheenStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: interpolate(sheen.value, [0, 1], [-260, 320]) }],
-    opacity: interpolate(sheen.value, [0, 0.25, 0.75, 1], [0, 0.5, 0.5, 0]),
+    transform: [{ translateX: interpolate(sheen.value, [0, 1], [-280, 340]) }],
+    opacity: interpolate(sheen.value, [0, 0.2, 0.8, 1], [0, 0.45, 0.45, 0]),
   }));
 
   const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.07]) }],
+    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.05]) }],
   }));
 
   return (
@@ -79,50 +74,73 @@ export function TopMatchCard({
         onPress={onPress}
         style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       >
-      <Image
-        source={{ uri: primaryPhoto(pet.photos) }}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
-
-      {/* Moving highlight — purely decorative. */}
-      <Animated.View style={[styles.sheen, sheenStyle]} pointerEvents="none">
-        <LinearGradient
-          colors={['transparent', 'rgba(255,255,255,0.28)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
+        <Image
+          source={{ uri: primaryPhoto(pet.photos) }}
           style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={200}
         />
-      </Animated.View>
 
-      <View style={styles.ribbon}>
-        <Ionicons name="sparkles" size={11} color="#FFFFFF" />
-        <Text style={styles.ribbonText}>TOP MATCH TODAY</Text>
-      </View>
+        <Animated.View style={[styles.sheen, sheenStyle]} pointerEvents="none">
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.32)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
 
-      <Animated.View style={[styles.scorePill, pulseStyle]}>
-        <Text style={styles.scoreValue}>{compatibility.score}%</Text>
-      </Animated.View>
-
-      <LinearGradient
-        colors={['transparent', overlay.scrimSoft, overlay.scrimStrong]}
-        style={styles.scrim}
-      >
-        <Text style={styles.name}>
-          {speciesEmoji(pet.species)} {pet.name}
-        </Text>
-        <Text style={styles.meta}>
-          {pet.breed} · {formatAge(pet.dateOfBirth)}
-        </Text>
-
-        <View style={styles.footer}>
-          <Ionicons name="location" size={12} color="rgba(255,255,255,0.9)" />
-          <Text style={styles.footerText}>{formatDistance(distanceKm)}</Text>
-          <View style={styles.cta}>
-            <Text style={styles.ctaText}>View</Text>
-            <Ionicons name="arrow-forward" size={11} color={colors.primaryDark} />
+        <View style={styles.topRow}>
+          <View style={styles.ribbon}>
+            <Ionicons name="sparkles" size={11} color="#FFFFFF" />
+            <Text style={styles.ribbonText}>Top match</Text>
           </View>
+
+          <Animated.View style={pulseStyle}>
+            <LinearGradient
+              colors={['#1EC8C5', '#0E9594']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.scoreBadge}
+            >
+              <Text style={styles.scoreValue}>{compatibility.score}</Text>
+              <Text style={styles.scoreUnit}>%</Text>
+            </LinearGradient>
+          </Animated.View>
         </View>
+
+        <LinearGradient
+          colors={['transparent', 'rgba(10,40,40,0.55)', overlay.scrimStrong]}
+          locations={[0, 0.45, 1]}
+          style={styles.scrim}
+        >
+          <Text style={styles.name} numberOfLines={1}>
+            {pet.name}
+          </Text>
+          <Text style={styles.meta} numberOfLines={1}>
+            {pet.breed} · {formatAge(pet.dateOfBirth)}
+          </Text>
+
+          <View style={styles.footer}>
+            <View style={styles.metaPill}>
+              <Ionicons name="location" size={12} color="#FFFFFF" />
+              <Text style={styles.metaPillText}>{formatDistance(distanceKm)}</Text>
+            </View>
+            <View style={styles.metaPill}>
+              <Ionicons
+                name={pet.gender === 'male' ? 'male' : 'female'}
+                size={12}
+                color="#FFFFFF"
+              />
+              <Text style={styles.metaPillText}>
+                {pet.gender === 'male' ? 'Male' : 'Female'}
+              </Text>
+            </View>
+            <View style={styles.cta}>
+              <Text style={styles.ctaText}>Open</Text>
+              <Ionicons name="arrow-forward" size={13} color={colors.primaryDark} />
+            </View>
+          </View>
         </LinearGradient>
       </Pressable>
     </Animated.View>
@@ -131,57 +149,109 @@ export function TopMatchCard({
 
 const styles = StyleSheet.create({
   card: {
-    height: 210,
-    borderRadius: radius.xl,
+    height: 248,
+    borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: colors.ink,
     marginBottom: spacing.lg,
     ...shadow.floating,
   },
-  pressed: { opacity: 0.94, transform: [{ scale: 0.99 }] },
-  sheen: { position: 'absolute', top: 0, bottom: 0, width: 130 },
-  ribbon: {
+  pressed: { opacity: 0.96, transform: [{ scale: 0.985 }] },
+  sheen: { position: 'absolute', top: 0, bottom: 0, width: 110 },
+  topRow: {
     position: 'absolute',
     top: spacing.md,
     left: spacing.md,
+    right: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
+    justifyContent: 'space-between',
+    zIndex: 2,
   },
-  ribbonText: { color: '#FFFFFF', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
-  scorePill: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    backgroundColor: colors.success,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+  ribbon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(14,149,148,0.92)',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
     borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
-  scoreValue: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
+  ribbonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  scoreBadge: {
+    minWidth: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+    paddingHorizontal: 6,
+  },
+  scoreValue: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
+  scoreUnit: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 3,
+  },
   scrim: {
     marginTop: 'auto',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md + 2,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  name: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
-  meta: { color: 'rgba(255,255,255,0.92)', fontSize: 12.5, fontWeight: '500', marginTop: 1 },
-  footer: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
-  footerText: { color: 'rgba(255,255,255,0.9)', fontSize: 11.5, fontWeight: '600' },
+  name: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  meta: {
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 3,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.md,
+  },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  metaPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   cta: {
     marginLeft: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: radius.pill,
   },
-  ctaText: { color: colors.primaryDark, fontSize: 11, fontWeight: '800' },
+  ctaText: { color: colors.primaryDark, fontSize: 12, fontWeight: '800' },
 });

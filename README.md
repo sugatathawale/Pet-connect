@@ -124,7 +124,7 @@ Hamburger menu on Nearby (left of the location) opens **AI Assistant**, Settings
 cd backend/ai_assistant
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # set OPENAI_API_KEY
+cp .env.example .env   # set GOOGLE_API_KEY (Gemini)
 uvicorn main:app --reload --port 8787
 ```
 

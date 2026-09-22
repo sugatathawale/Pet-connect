@@ -28,12 +28,14 @@ cd backend/ai_assistant
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env        # add OPENAI_API_KEY
+cp .env.example .env        # set GOOGLE_API_KEY (Gemini)
 uvicorn main:app --reload --port 8787
 ```
 
 Point the Expo app at the API with `EXPO_PUBLIC_AI_API_URL` (default `http://localhost:8787`).
 On a physical device, use your machine's LAN IP instead of localhost.
+
+Uses **Gemini** (`GOOGLE_API_KEY`) for both chat and embeddings — no OpenAI key needed.
 
 ## Behaviour
 

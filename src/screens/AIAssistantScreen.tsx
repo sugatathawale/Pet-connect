@@ -115,27 +115,22 @@ export default function AIAssistantScreen() {
 
         <FlatList
           ref={listRef}
+          style={styles.flex}
           data={turns}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: spacing.lg },
-          ]}
+          contentContainerStyle={styles.list}
           onContentSizeChange={() =>
             listRef.current?.scrollToEnd({ animated: true })
           }
-          ListHeaderComponent={
-            <View>
-              {showHero && <HeroOrb />}
-              <PromptRail busy={busy} onPick={send} />
-            </View>
-          }
-          ListFooterComponent={busy ? <TypingRow /> : null}
+          ListHeaderComponent={showHero ? <HeroOrb /> : null}
+          ListFooterComponent={busy ? <TypingRow /> : <View style={{ height: 4 }} />}
           renderItem={({ item, index }) => (
             <MessageBubble turn={item} index={index} />
           )}
         />
+
+        <PromptRail busy={busy} onPick={send} />
 
         <Composer
           draft={draft}
@@ -322,38 +317,31 @@ function PromptRail({
   onPick: (prompt: string) => void;
 }) {
   return (
-    <Animated.View entering={FadeInDown.delay(120).springify().damping(16)}>
-      <Text style={styles.railLabel}>Quick sparks</Text>
+    <Animated.View
+      entering={FadeInDown.delay(80).springify().damping(16)}
+      style={styles.railWrap}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.rail}
+        keyboardShouldPersistTaps="handled"
       >
-        {PROMPTS.map((item, index) => (
-          <Animated.View
+        {PROMPTS.map((item) => (
+          <Pressable
             key={item.label}
-            entering={FadeInUp.delay(80 + index * 60).springify()}
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={() => onPick(item.prompt)}
+            style={({ pressed }) => [
+              styles.promptChip,
+              pressed && styles.promptPressed,
+              busy && styles.promptDisabled,
+            ]}
           >
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={() => onPick(item.prompt)}
-              style={({ pressed }) => [
-                styles.promptCard,
-                { backgroundColor: item.soft },
-                pressed && styles.promptPressed,
-                busy && styles.promptDisabled,
-              ]}
-            >
-              <View style={[styles.promptIcon, { backgroundColor: item.tint }]}>
-                <Ionicons name={item.icon} size={16} color="#FFFFFF" />
-              </View>
-              <Text style={styles.promptLabel}>{item.label}</Text>
-              <Text style={styles.promptHint} numberOfLines={2}>
-                {item.prompt}
-              </Text>
-            </Pressable>
-          </Animated.View>
+            <Ionicons name={item.icon} size={14} color={colors.primary} />
+            <Text style={styles.promptChipText}>{item.label}</Text>
+          </Pressable>
         ))}
       </ScrollView>
     </Animated.View>
@@ -627,13 +615,16 @@ const styles = StyleSheet.create({
   },
 
   list: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
 
   hero: {
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
     marginTop: spacing.sm,
   },
   heroOrbWrap: {
@@ -677,52 +668,35 @@ const styles = StyleSheet.create({
     maxWidth: 280,
   },
 
-  railLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.inkFaint,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: spacing.sm,
-    marginLeft: 2,
+  railWrap: {
+    paddingBottom: spacing.sm,
   },
   rail: {
-    gap: spacing.sm,
-    paddingBottom: spacing.lg,
-    paddingRight: spacing.lg,
+    gap: 8,
+    paddingHorizontal: spacing.lg,
   },
-  promptCard: {
-    width: 132,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(20,38,43,0.04)',
-  },
-  promptPressed: { transform: [{ scale: 0.97 }], opacity: 0.9 },
-  promptDisabled: { opacity: 0.55 },
-  promptIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
+  promptChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  promptLabel: {
-    fontSize: 14,
-    fontWeight: '800',
+  promptChipText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.ink,
   },
-  promptHint: {
-    marginTop: 3,
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.inkMuted,
-  },
+  promptPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
+  promptDisabled: { opacity: 0.5 },
 
   row: {
     flexDirection: 'row',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm + 2,
     alignItems: 'flex-end',
     gap: 8,
   },
@@ -789,7 +763,7 @@ const styles = StyleSheet.create({
 
   composerWrap: {
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: 0,
   },
   composerShell: {
     flexDirection: 'row',
