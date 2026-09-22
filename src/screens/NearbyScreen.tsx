@@ -1,23 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  type ListRenderItemInfo,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SideMenu } from '@/components/menu/SideMenu';
 import { FilterSheet } from '@/components/pet/FilterSheet';
 import { AvailableNowRail } from '@/components/pet/AvailableNowRail';
 import { CategoryRail } from '@/components/pet/CategoryRail';
-import { PetCard } from '@/components/pet/PetCard';
+import { PET_CARD_HEIGHT, PetCard } from '@/components/pet/PetCard';
 import { TopMatchCard } from '@/components/pet/TopMatchCard';
 import { StatsStrip } from '@/components/ui/StatCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -25,6 +25,7 @@ import { DEFAULT_FILTERS } from '@/constants/config';
 import { colors, radius, spacing } from '@/constants/theme';
 import { useApp } from '@/context/AppContext';
 import { useNearbyPets } from '@/hooks/useNearbyPets';
+import type { PetWithContext } from '@/types';
 
 /** Home: pets around the user, sorted by compatibility. */
 export default function NearbyScreen() {
@@ -37,7 +38,6 @@ export default function NearbyScreen() {
     userLocation,
     isLocationPrecise,
     refresh,
-    unreadNotifications,
     myPets,
     matches,
   } = useApp();
@@ -47,20 +47,139 @@ export default function NearbyScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
-  };
+  }, [refresh]);
 
   const activeFilterCount = countActiveFilters(filters);
 
-  // Dashboard values. `all` is already sorted by score, so the head is the best match.
   const topMatch = all[0] ?? null;
   const bestScore = topMatch?.compatibility.score ?? 0;
   const availableNow = useMemo(
     () => all.filter((item) => item.pet.availableForBreeding),
     [all],
+  );
+
+  const openPet = useCallback(
+    (petId: string) => {
+      router.push(`/pet/${petId}`);
+    },
+    [router],
+  );
+
+  const onCategorySelect = useCallback(
+    (patch: Partial<typeof filters>) => {
+      setFilters({ ...filters, ...patch });
+    },
+    [filters, setFilters],
+  );
+
+  const keyExtractor = useCallback((item: PetWithContext) => item.pet.id, []);
+
+  const renderPet = useCallback(
+    ({ item }: ListRenderItemInfo<PetWithContext>) => (
+      <PetCard item={item} onPress={openPet} />
+    ),
+    [openPet],
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<PetWithContext> | null | undefined, index: number) => ({
+      length: PET_CARD_HEIGHT,
+      offset: PET_CARD_HEIGHT * index,
+      index,
+    }),
+    [],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View>
+        {myPets.length === 0 && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/pet/new')}
+            style={styles.banner}
+          >
+            <Text style={styles.bannerEmoji}>🐾</Text>
+            <View style={styles.bannerText}>
+              <Text style={styles.bannerTitle}>Add your pet</Text>
+              <Text style={styles.bannerBody}>
+                Create a profile to start matching and get accurate scores.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.primary} />
+          </Pressable>
+        )}
+
+        <View style={styles.categoryRow}>
+          <View style={styles.categoryRail}>
+            <CategoryRail filters={filters} onSelect={onCategorySelect} />
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Filters"
+            onPress={() => setFiltersOpen(true)}
+            style={styles.filterFab}
+          >
+            <Ionicons name="options-outline" size={18} color={colors.ink} />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterCount}>
+                <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+
+        {topMatch && (
+          <TopMatchCard
+            item={topMatch}
+            onPress={() => openPet(topMatch.pet.id)}
+          />
+        )}
+
+        <AvailableNowRail items={availableNow} onSelect={openPet} />
+
+        <StatsStrip
+          items={[
+            { label: 'Nearby', value: totalNearby },
+            {
+              label: 'Matches',
+              value: matches.length,
+              onPress: () => router.push('/chats'),
+            },
+            { label: 'Available', value: availableNow.length },
+            { label: 'Best', value: bestScore, suffix: '%' },
+          ]}
+        />
+
+        {all.length > 0 && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>All pets nearby</Text>
+            <Text style={styles.resultCount}>
+              {all.length} of {totalNearby}
+            </Text>
+          </View>
+        )}
+      </View>
+    ),
+    [
+      myPets.length,
+      router,
+      filters,
+      onCategorySelect,
+      activeFilterCount,
+      topMatch,
+      openPet,
+      availableNow,
+      totalNearby,
+      matches.length,
+      bestScore,
+      all.length,
+    ],
   );
 
   if (!ready) {
@@ -105,7 +224,6 @@ export default function NearbyScreen() {
           style={styles.iconButton}
         >
           <Ionicons name="notifications-outline" size={21} color={colors.ink} />
-          {unreadNotifications > 0 && <View style={styles.dot} />}
         </Pressable>
       </View>
 
@@ -113,102 +231,10 @@ export default function NearbyScreen() {
 
       <FlatList
         data={all}
-        keyExtractor={(item) => item.pet.id}
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeInDown.delay(Math.min(index, 6) * 60)
-              .springify()
-              .damping(16)}
-          >
-            <PetCard item={item} onPress={() => router.push(`/pet/${item.pet.id}`)} />
-          </Animated.View>
-        )}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
-        ListHeaderComponent={
-          <View>
-            {myPets.length === 0 && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push('/pet/new')}
-                style={styles.banner}
-              >
-                <Text style={styles.bannerEmoji}>🐾</Text>
-                <View style={styles.bannerText}>
-                  <Text style={styles.bannerTitle}>Add your pet</Text>
-                  <Text style={styles.bannerBody}>
-                    Create a profile to start matching and get accurate scores.
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={19} color={colors.primary} />
-              </Pressable>
-            )}
-
-            <View style={styles.categoryRow}>
-              <View style={styles.categoryRail}>
-                <CategoryRail
-                  filters={filters}
-                  onSelect={(patch) => setFilters({ ...filters, ...patch })}
-                />
-              </View>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Filters"
-                onPress={() => setFiltersOpen(true)}
-                style={styles.filterFab}
-              >
-                <Ionicons name="options-outline" size={18} color={colors.ink} />
-                {activeFilterCount > 0 && (
-                  <View style={styles.filterCount}>
-                    <Text style={styles.filterCountText}>{activeFilterCount}</Text>
-                  </View>
-                )}
-              </Pressable>
-            </View>
-
-            {topMatch && (
-              <TopMatchCard
-                item={topMatch}
-                onPress={() => router.push(`/pet/${topMatch.pet.id}`)}
-              />
-            )}
-
-            <AvailableNowRail
-              items={availableNow}
-              onSelect={(petId) => router.push(`/pet/${petId}`)}
-            />
-
-            <StatsStrip
-              items={[
-                { label: 'Nearby', value: totalNearby },
-                {
-                  label: 'Matches',
-                  value: matches.length,
-                  onPress: () => router.push('/chats'),
-                },
-                { label: 'Available', value: availableNow.length },
-                { label: 'Best', value: bestScore, suffix: '%' },
-              ]}
-            />
-
-            {all.length > 0 && (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>All pets nearby</Text>
-                <Text style={styles.resultCount}>
-                  {all.length} of {totalNearby}
-                </Text>
-              </View>
-            )}
-          </View>
-        }
+        keyExtractor={keyExtractor}
+        renderItem={renderPet}
+        getItemLayout={getItemLayout}
+        ListHeaderComponent={listHeader}
         ListEmptyComponent={
           <EmptyState
             icon="paw-outline"
@@ -218,6 +244,20 @@ export default function NearbyScreen() {
             onAction={() => setFilters(DEFAULT_FILTERS)}
           />
         }
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        initialNumToRender={6}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
+        removeClippedSubviews
       />
 
       <FilterSheet
@@ -293,17 +333,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dot: {
-    position: 'absolute',
-    top: 10,
-    right: 11,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    borderWidth: 1.5,
-    borderColor: colors.surface,
-  },
   filterCount: {
     position: 'absolute',
     top: -3,
@@ -338,7 +367,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   resultCount: { fontSize: 12, color: colors.inkFaint, fontWeight: '500' },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: 118 },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: 118, flexGrow: 1 },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'react-native';
-import React from 'react';
+import { Image } from 'expo-image';
+import React, { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScoreRing } from '@/components/ui/ScoreRing';
@@ -12,24 +12,30 @@ import { primaryPhoto } from '@/utils/images';
 
 interface PetCardProps {
   item: PetWithContext;
-  onPress: () => void;
+  onPress: (petId: string) => void;
 }
 
-/** Horizontal card used in the nearby-pets list. */
-export function PetCard({ item, onPress }: PetCardProps) {
+/** List row for nearby pets — memoised for FlatList recycling. */
+export const PetCard = memo(function PetCard({ item, onPress }: PetCardProps) {
   const { pet, distanceKm, compatibility } = item;
+
+  const handlePress = useCallback(() => {
+    onPress(pet.id);
+  }, [onPress, pet.id]);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${pet.name}, ${pet.breed}, ${formatDistance(distanceKm)}`}
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <Image
         source={{ uri: primaryPhoto(pet.photos) }}
         style={styles.photo}
-        resizeMode="cover"
+        contentFit="cover"
+        recyclingKey={pet.id}
+        transition={120}
       />
 
       <View style={styles.body}>
@@ -53,7 +59,10 @@ export function PetCard({ item, onPress }: PetCardProps) {
       </View>
     </Pressable>
   );
-}
+});
+
+/** Approximate row height for FlatList getItemLayout (photo + padding + margin). */
+export const PET_CARD_HEIGHT = 96 + spacing.md * 2 + spacing.md;
 
 const styles = StyleSheet.create({
   card: {
@@ -63,6 +72,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
     marginBottom: spacing.md,
+    height: PET_CARD_HEIGHT - spacing.md,
     ...shadow.card,
   },
   pressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },

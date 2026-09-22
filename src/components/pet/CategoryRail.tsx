@@ -1,23 +1,19 @@
 import { Cat, Dog, HeartHandshake, PawPrint, Sparkles } from 'lucide-react-native';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import React, { useCallback } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, spacing } from '@/constants/theme';
+import { colors, spacing } from '@/constants/theme';
 import type { PetFilters, PetSpecies } from '@/types';
 
 /**
- * Circular category shortcuts, modelled on the Valura asset-class row.
- *
- * Each one applies a filter rather than navigating, so the feed below updates
- * in place — the row doubles as the fastest way to narrow results.
+ * Circular category shortcuts.
+ * Each applies a filter rather than navigating — feed updates in place.
  */
 
 interface Category {
   key: string;
   label: string;
   Icon: typeof Dog;
-  /** Filter patch applied when tapped. */
   patch: Partial<PetFilters>;
 }
 
@@ -29,6 +25,8 @@ const CATEGORIES: Category[] = [
   { key: 'nearby', label: 'Under 5km', Icon: HeartHandshake, patch: { maxDistanceKm: 5 } },
 ];
 
+const ITEM_WIDTH = 60 + spacing.md + 2;
+
 export function CategoryRail({
   filters,
   onSelect,
@@ -36,64 +34,79 @@ export function CategoryRail({
   filters: PetFilters;
   onSelect: (patch: Partial<PetFilters>) => void;
 }) {
-  /** A category reads as active when the feed already reflects its filter. */
-  const isActive = (category: Category): boolean => {
-    switch (category.key) {
-      case 'all':
-        return filters.species === 'all' && !filters.availableForBreedingOnly;
-      case 'dogs':
-        return filters.species === 'dog';
-      case 'cats':
-        return filters.species === 'cat';
-      case 'available':
-        return filters.availableForBreedingOnly;
-      case 'nearby':
-        return filters.maxDistanceKm <= 5;
-      default:
-        return false;
-    }
-  };
+  const isActive = useCallback(
+    (category: Category): boolean => {
+      switch (category.key) {
+        case 'all':
+          return filters.species === 'all' && !filters.availableForBreedingOnly;
+        case 'dogs':
+          return filters.species === 'dog';
+        case 'cats':
+          return filters.species === 'cat';
+        case 'available':
+          return filters.availableForBreedingOnly;
+        case 'nearby':
+          return filters.maxDistanceKm <= 5;
+        default:
+          return false;
+      }
+    },
+    [filters],
+  );
+
+  const keyExtractor = useCallback((item: Category) => item.key, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: Category }) => {
+      const active = isActive(item);
+      const { Icon } = item;
+
+      return (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: active }}
+          accessibilityLabel={item.label}
+          onPress={() => onSelect(item.patch)}
+          style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+        >
+          <View style={[styles.circle, active && styles.circleActive]}>
+            <Icon
+              size={22}
+              color={active ? colors.surface : colors.primaryDark}
+              strokeWidth={1.9}
+            />
+          </View>
+          <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
+            {item.label}
+          </Text>
+        </Pressable>
+      );
+    },
+    [isActive, onSelect],
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<Category> | null | undefined, index: number) => ({
+      length: ITEM_WIDTH,
+      offset: ITEM_WIDTH * index,
+      index,
+    }),
+    [],
+  );
 
   return (
-    <ScrollView
+    <FlatList
       horizontal
+      data={CATEGORIES}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      getItemLayout={getItemLayout}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.rail}
-    >
-      {CATEGORIES.map((category, index) => {
-        const active = isActive(category);
-        const { Icon } = category;
-
-        return (
-          <Animated.View
-            key={category.key}
-            entering={FadeInDown.delay(index * 60).springify().damping(15)}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={category.label}
-              onPress={() => onSelect(category.patch)}
-              style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-            >
-              <View style={[styles.circle, active && styles.circleActive]}>
-                <Icon
-                  size={22}
-                  color={active ? colors.surface : colors.primaryDark}
-                  strokeWidth={1.9}
-                />
-              </View>
-              <Text
-                style={[styles.label, active && styles.labelActive]}
-                numberOfLines={1}
-              >
-                {category.label}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        );
-      })}
-    </ScrollView>
+      initialNumToRender={5}
+      maxToRenderPerBatch={5}
+      windowSize={3}
+    />
   );
 }
 

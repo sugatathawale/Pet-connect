@@ -1,20 +1,77 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInRight } from 'react-native-reanimated';
+import React, { memo, useCallback } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, shadow, spacing } from '@/constants/theme';
 import type { PetWithContext } from '@/types';
 import { formatDistance } from '@/utils/geo';
 import { primaryPhoto } from '@/utils/images';
 
+const CARD_WIDTH = 118;
+const CARD_GAP = spacing.md;
+const SNAP = CARD_WIDTH + CARD_GAP;
+
+const AvailableCard = memo(function AvailableCard({
+  item,
+  onSelect,
+}: {
+  item: PetWithContext;
+  onSelect: (petId: string) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onSelect(item.pet.id);
+  }, [onSelect, item.pet.id]);
+
+  const distanceLabel =
+    item.distanceKm < 1
+      ? `${Math.round(item.distanceKm * 1000)} m`
+      : `${item.distanceKm.toFixed(1)} km`;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${item.pet.name}, ${formatDistance(item.distanceKm)}`}
+      onPress={handlePress}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <Image
+        source={{ uri: primaryPhoto(item.pet.photos) }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        recyclingKey={item.pet.id}
+        transition={120}
+      />
+
+      <LinearGradient
+        colors={['rgba(10,40,40,0.15)', 'transparent', 'rgba(10,30,30,0.88)']}
+        locations={[0, 0.35, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.scorePill}>
+        <Text style={styles.scoreText}>{item.compatibility.score}%</Text>
+      </View>
+
+      <View style={styles.body}>
+        <Text style={styles.name} numberOfLines={1}>
+          {item.pet.name}
+        </Text>
+        <View style={styles.metaRow}>
+          <Ionicons name="navigate" size={10} color="rgba(255,255,255,0.85)" />
+          <Text style={styles.distance} numberOfLines={1}>
+            {distanceLabel}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+});
+
 /**
- * Horizontal rail of pets currently open to matches.
- *
- * Portrait photo tiles — availability *dates* stay private; only the public
- * `availableForBreeding` flag is implied by presence here.
+ * Horizontal FlatList of pets currently open to matches.
+ * Availability *dates* stay private — only the public flag is implied here.
  */
 export function AvailableNowRail({
   items,
@@ -23,6 +80,24 @@ export function AvailableNowRail({
   items: PetWithContext[];
   onSelect: (petId: string) => void;
 }) {
+  const keyExtractor = useCallback((item: PetWithContext) => item.pet.id, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: PetWithContext }) => (
+      <AvailableCard item={item} onSelect={onSelect} />
+    ),
+    [onSelect],
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<PetWithContext> | null | undefined, index: number) => ({
+      length: SNAP,
+      offset: SNAP * index,
+      index,
+    }),
+    [],
+  );
+
   if (items.length === 0) return null;
 
   return (
@@ -35,63 +110,24 @@ export function AvailableNowRail({
         <Text style={styles.count}>{items.length}</Text>
       </View>
 
-      <ScrollView
+      <FlatList
         horizontal
+        data={items}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        getItemLayout={getItemLayout}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.rail}
         decelerationRate="fast"
-        snapToInterval={CARD_WIDTH + spacing.md}
-      >
-        {items.map((item, index) => (
-          <Animated.View
-            key={item.pet.id}
-            entering={FadeInRight.delay(index * 55).springify().damping(15)}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${item.pet.name}, ${formatDistance(item.distanceKm)}`}
-              onPress={() => onSelect(item.pet.id)}
-              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-            >
-              <Image
-                source={{ uri: primaryPhoto(item.pet.photos) }}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-                transition={180}
-              />
-
-              <LinearGradient
-                colors={['rgba(10,40,40,0.15)', 'transparent', 'rgba(10,30,30,0.88)']}
-                locations={[0, 0.35, 1]}
-                style={StyleSheet.absoluteFill}
-              />
-
-              <View style={styles.scorePill}>
-                <Text style={styles.scoreText}>{item.compatibility.score}%</Text>
-              </View>
-
-              <View style={styles.body}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {item.pet.name}
-                </Text>
-                <View style={styles.metaRow}>
-                  <Ionicons name="navigate" size={10} color="rgba(255,255,255,0.85)" />
-                  <Text style={styles.distance} numberOfLines={1}>
-                    {item.distanceKm < 1
-                      ? `${Math.round(item.distanceKm * 1000)} m`
-                      : `${item.distanceKm.toFixed(1)} km`}
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          </Animated.View>
-        ))}
-      </ScrollView>
+        snapToInterval={SNAP}
+        initialNumToRender={4}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews
+      />
     </View>
   );
 }
-
-const CARD_WIDTH = 118;
 
 const styles = StyleSheet.create({
   section: { marginBottom: spacing.xl },
@@ -119,7 +155,7 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   rail: {
-    gap: spacing.md,
+    gap: CARD_GAP,
     paddingRight: spacing.lg,
     paddingVertical: 2,
   },

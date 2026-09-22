@@ -82,7 +82,7 @@ export default function OwnerScreen() {
           <PetCard
             key={item.pet.id}
             item={item}
-            onPress={() => router.push(`/pet/${item.pet.id}`)}
+            onPress={(petId) => router.push(`/pet/${petId}`)}
           />
         ))}
       </View>
